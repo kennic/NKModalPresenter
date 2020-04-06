@@ -19,7 +19,7 @@ extension Array where Element: Equatable {
 }
 
 public class NKModalPresenter {
-	static let shared = NKModalPresenter()
+	public static let shared = NKModalPresenter()
 	public private(set) var activeModalControllers: [NKModalController] = []
 	private var listenOnDismissEvent = true
 
