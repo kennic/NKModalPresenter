@@ -97,7 +97,7 @@ public protocol NKModalControllerDelegate: class {
 	func animationDuration(modalController: NKModalController) -> TimeInterval
 	func backgroundColor(modalController: NKModalController) -> UIColor
 	func backgroundBlurryValue(modalController: NKModalController) -> CGFloat
-	func cornerRadius(modalController: NKModalController) -> CFloat
+	func cornerRadius(modalController: NKModalController) -> CGFloat
 	
 }
 
@@ -120,7 +120,7 @@ extension NKModalControllerDelegate {
 	func animationDuration(modalController: NKModalController) -> TimeInterval { return 0.45 }
 	func backgroundColor(modalController: NKModalController) -> UIColor { return UIColor.black.withAlphaComponent(0.75) }
 	func backgroundBlurryValue(modalController: NKModalController) -> CGFloat { return 0.0 }
-	func cornerRadius(modalController: NKModalController) -> CFloat { return 8.0 }
+	func cornerRadius(modalController: NKModalController) -> CGFloat { return 8.0 }
 	
 }
 
@@ -137,9 +137,17 @@ extension UIWindow {
 public class NKModalController: UIViewController {
 	public fileprivate(set) var contentViewController: UIViewController!
 	public var animatedView: UIView?
+	public var lastAnimatedViewAlpha: CGFloat = 1.0
 	public var delegate: NKModalControllerDelegate?
 	
+	// Default values
+	public var backgroundColor = UIColor.black.withAlphaComponent(0.8)
+	public var animationDuration: TimeInterval = 0.45
+	public var cornerRadius: CGFloat = 8.0
+	public var enableDragDownToDismiss = false
+	
 	let containerView = UIView()
+	var window: UIWindow?
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView?, frame: CGRect)?
 
@@ -148,6 +156,7 @@ public class NKModalController: UIViewController {
 		
 		modalTransitionStyle = .crossDissolve
 		modalPresentationStyle = .overCurrentContext
+		modalPresentationCapturesStatusBarAppearance = true
 		
 		contentViewController = viewController
 		containerView.addSubview(contentViewController.view)
@@ -175,6 +184,7 @@ public class NKModalController: UIViewController {
 	
 	public func present(animatedFrom view: UIView?) {
 		animatedView = view
+		lastAnimatedViewAlpha = view?.alpha ?? 1.0
 		lastPosition = (contentViewController.view.superview, contentViewController.view.frame)
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
@@ -183,7 +193,6 @@ public class NKModalController: UIViewController {
 			lastWindow = UIWindow.keyWindow
 			
 			presentingViewController = NKModalContainerViewController()
-			var window: UIWindow! = nil
 			if #available(iOS 13.0, *) {
 				if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
 					window = UIWindow(windowScene: scene)
@@ -194,9 +203,9 @@ public class NKModalController: UIViewController {
 				window = UIWindow(frame: UIScreen.main.bounds)
 			}
 			
-			window.windowLevel = .normal
-			window.rootViewController = presentingViewController
-			window.makeKeyAndVisible()
+			window?.windowLevel = .normal
+			window?.rootViewController = presentingViewController
+			window?.makeKeyAndVisible()
 		}
 		
 		presentingViewController?.present(self, animated: false, completion: {
@@ -205,7 +214,32 @@ public class NKModalController: UIViewController {
 	}
 	
 	func showView() {
+		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? cornerRadius
+		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
 		containerView.addSubview(contentViewController.view)
+		
+		let startProperties = startFrame()
+		containerView.frame = startProperties.frame
+		if startProperties.scale != 0 {
+			containerView.transform = CGAffineTransform(scaleX: startProperties.scale, y: startProperties.scale)
+			containerView.alpha = 0.0
+		}
+		
+		let color = delegate?.backgroundColor(modalController: self) ?? backgroundColor
+		let duration = delegate?.animationDuration(modalController: self) ?? animationDuration
+		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
+			self.view.backgroundColor = color
+			self.setNeedsStatusBarAppearanceUpdate()
+			self.containerView.transform = .identity
+			self.containerView.frame = self.presentFrame()
+			self.containerView.alpha = 1.0
+			self.contentViewController.view.frame = self.containerView.bounds
+			
+			self.animatedView?.alpha = 0.0
+		}) { (finished) in
+			self.view.setNeedsLayout()
+			self.contentViewController.view.frame = self.containerView.bounds
+		}
 	}
 	
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
@@ -268,7 +302,7 @@ public class NKModalController: UIViewController {
 			origin.y = (viewSize.height - contentSize.height)/2
 			
 		case .center:
-			origin.x = viewSize.width - contentSize.width
+			origin.x = (viewSize.width - contentSize.width)/2
 			origin.y = (viewSize.height - contentSize.height)/2
 			
 		case .custom(let frame):
