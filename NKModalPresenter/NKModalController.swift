@@ -170,6 +170,11 @@ extension UIWindow {
 // MARK: - NKModalController
 
 public class NKModalController: UIViewController {
+	static let willPresent = Notification.Name(rawValue: "NKModalControllerWillPresent")
+	static let didPresent = Notification.Name(rawValue: "NKModalControllerDidPresent")
+	static let willDismiss = Notification.Name(rawValue: "NKModalControllerWillDismiss")
+	static let didDismiss = Notification.Name(rawValue: "NKModalControllerDidDismiss")
+	
 	public fileprivate(set) var contentViewController: UIViewController!
 	public var animatedView: UIView?
 	public var lastAnimatedViewAlpha: CGFloat = 1.0
@@ -217,6 +222,7 @@ public class NKModalController: UIViewController {
 	
 	public func present(animatedFrom view: UIView?) {
 		delegate?.modalController(self, willPresent: contentViewController)
+		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
 		animatedView = view
 		lastPosition = (contentViewController.view.superview, contentViewController.view.frame)
@@ -277,12 +283,15 @@ public class NKModalController: UIViewController {
 		}) { (finished) in
 			self.view.setNeedsLayout()
 			self.contentViewController.view.frame = self.containerView.bounds
+			
 			self.delegate?.modalController(self, didPresent: self.contentViewController)
+			NotificationCenter.default.post(name: NKModalController.didPresent, object: self, userInfo: nil)
 		}
 	}
 	
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
 		delegate?.modalController(self, willDismiss: contentViewController)
+		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
 		
 		let duration = delegate?.animationDuration(modalController: self) ?? animationDuration
 		let targetProperties = dismissFrame()
@@ -296,8 +305,8 @@ public class NKModalController: UIViewController {
 			self.containerView.frame = targetProperties.frame
 			self.containerView.transform = transform
 		}) { (finished) in
-			if let lastPosition = self.lastPosition {
-				lastPosition.container?.addSubview(self.contentViewController.view)
+			if let lastPosition = self.lastPosition, let lastContainerView = lastPosition.container {
+				lastContainerView.addSubview(self.contentViewController.view)
 				self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
 				self.contentViewController.view.frame = lastPosition.frame
 				self.contentViewController.view.setNeedsLayout()
@@ -313,7 +322,10 @@ public class NKModalController: UIViewController {
 				self.window?.removeFromSuperview()
 				self.window = nil
 				
+				self.contentViewController = nil
+				
 				self.delegate?.modalController(self, didDismiss: self.contentViewController)
+				NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
 			}
 		}
 	}
@@ -430,6 +442,14 @@ class NKModalContainerViewController: UIViewController {
 	
 	var visibleViewController: UIViewController? {
 		return (contentViewController as? UINavigationController)?.visibleViewController ?? contentViewController
+	}
+	
+	init() {
+		super.init(nibName: nil, bundle: nil)
+	}
+	
+	required init?(coder: NSCoder) {
+		fatalError("init(coder:) has not been implemented")
 	}
 	
 	// Orientation

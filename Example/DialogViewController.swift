@@ -24,7 +24,15 @@ class DialogViewController: UIViewController {
 			super.preferredContentSize = newValue
 		}
 	}
-
+	
+	init() {
+		super.init(nibName: nil, bundle: nil)
+	}
+	
+	required init?(coder: NSCoder) {
+		fatalError("init(coder:) has not been implemented")
+	}
+	
     override func viewDidLoad() {
         super.viewDidLoad()
 		
@@ -122,6 +130,10 @@ class DialogViewController: UIViewController {
 	
 	override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
 		return .portrait
+	}
+	
+	deinit {
+		print("DEINIT")
 	}
 
 }
