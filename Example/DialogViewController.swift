@@ -93,7 +93,16 @@ class DialogViewController: UIViewController {
 			dismiss(animated: true, completion: nil)
 		}
 		else {
-			
+			NKModalPresenter.shared.present(viewController: DialogViewController(), animatedFrom: button)
+		}
+	}
+	
+	override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+		if let controller = modalController {
+			controller.dismiss(animated: flag, completion: completion)
+		}
+		else {
+			super.dismiss(animated: flag, completion: completion)
 		}
 	}
 	

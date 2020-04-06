@@ -17,43 +17,6 @@ public enum NKModalPresentPosition: Equatable {
 	case custom(frame: CGRect)
 }
 
-extension NKModalPresentPosition {
-	
-	func toPresentAnimation(view: UIView) -> NKModalPresentAnimation {
-		switch self {
-		case .top:
-			return .fromTop
-		case .left:
-			return .fromLeft
-		case .bottom:
-			return .fromBottom
-		case .right:
-			return .fromRight
-		case .center:
-			return .fromCenter(scale: 0.8)
-		case .custom(frame: let frame):
-			let viewSize = view.frame.size
-			let origin = frame.origin
-			if origin.x == 0 {
-				return .fromLeft
-			}
-			else if origin.y == 0 {
-				return .fromBottom
-			}
-			else if origin.x > viewSize.width/2 {
-				return .fromRight
-			}
-			else if origin.y > viewSize.height/2 {
-				return .fromBottom
-			}
-			else {
-				return .fromCenter(scale: 0.8)
-			}
-		}
-	}
-	
-}
-
 public enum NKModalPresentAnimation: Equatable {
 	case auto
 	case fromTop
@@ -124,6 +87,76 @@ extension NKModalControllerDelegate {
 	
 }
 
+extension NKModalPresentPosition {
+	
+	func toPresentAnimation(view: UIView) -> NKModalPresentAnimation {
+		switch self {
+		case .top:
+			return .fromTop
+		case .left:
+			return .fromLeft
+		case .bottom:
+			return .fromBottom
+		case .right:
+			return .fromRight
+		case .center:
+			return .fromCenter(scale: 0.8)
+		case .custom(frame: let frame):
+			let viewSize = view.frame.size
+			let origin = frame.origin
+			if origin.x == 0 {
+				return .fromLeft
+			}
+			else if origin.y == 0 {
+				return .fromBottom
+			}
+			else if origin.x > viewSize.width/2 {
+				return .fromRight
+			}
+			else if origin.y > viewSize.height/2 {
+				return .fromBottom
+			}
+			else {
+				return .fromCenter(scale: 0.8)
+			}
+		}
+	}
+	
+	func toDismissAnimation(view: UIView) -> NKModalDismissAnimation {
+		switch self {
+		case .top:
+			return .toTop
+		case .left:
+			return .toLeft
+		case .bottom:
+			return .toBottom
+		case .right:
+			return .toRight
+		case .center:
+			return .toCenter(scale: 0.8)
+		case .custom(frame: let frame):
+			let viewSize = view.frame.size
+			let origin = frame.origin
+			if origin.x == 0 {
+				return .toLeft
+			}
+			else if origin.y == 0 {
+				return .toBottom
+			}
+			else if origin.x > viewSize.width/2 {
+				return .toRight
+			}
+			else if origin.y > viewSize.height/2 {
+				return .toBottom
+			}
+			else {
+				return .toCenter(scale: 0.8)
+			}
+		}
+	}
+	
+}
+
 extension UIWindow {
 	static var keyWindow: UIWindow? {
 		if #available(iOS 13, *) {
@@ -134,18 +167,19 @@ extension UIWindow {
 	}
 }
 
+// MARK: - NKModalController
+
 public class NKModalController: UIViewController {
 	public fileprivate(set) var contentViewController: UIViewController!
 	public var animatedView: UIView?
 	public var lastAnimatedViewAlpha: CGFloat = 1.0
 	public var delegate: NKModalControllerDelegate?
-	
-	// Default values
-	public var backgroundColor = UIColor.black.withAlphaComponent(0.8)
-	public var animationDuration: TimeInterval = 0.45
-	public var cornerRadius: CGFloat = 8.0
 	public var enableDragDownToDismiss = false
 	
+	// Default values
+	let backgroundColor = UIColor.black.withAlphaComponent(0.8)
+	let animationDuration: TimeInterval = 0.45
+	let cornerRadius: CGFloat = 8.0
 	let containerView = UIView()
 	var window: UIWindow?
 	var lastWindow: UIWindow?
@@ -159,7 +193,6 @@ public class NKModalController: UIViewController {
 		modalPresentationCapturesStatusBarAppearance = true
 		
 		contentViewController = viewController
-		containerView.addSubview(contentViewController.view)
 		
 		delegate = viewController as? NKModalControllerDelegate
 		if delegate == nil, let navigationController = viewController as? UINavigationController {
@@ -183,16 +216,21 @@ public class NKModalController: UIViewController {
 	// MARK: -
 	
 	public func present(animatedFrom view: UIView?) {
+		delegate?.modalController(self, willPresent: contentViewController)
+		
 		animatedView = view
-		lastAnimatedViewAlpha = view?.alpha ?? 1.0
 		lastPosition = (contentViewController.view.superview, contentViewController.view.frame)
+		lastAnimatedViewAlpha = view?.alpha ?? contentViewController.view.alpha
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
 		if presentingViewController == nil {
 			modalPresentationStyle = .fullScreen
 			lastWindow = UIWindow.keyWindow
 			
-			presentingViewController = NKModalContainerViewController()
+			let containerViewController = NKModalContainerViewController()
+			containerViewController.contentViewController = contentViewController
+			presentingViewController = containerViewController
+			
 			if #available(iOS 13.0, *) {
 				if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
 					window = UIWindow(windowScene: scene)
@@ -214,13 +252,15 @@ public class NKModalController: UIViewController {
 	}
 	
 	func showView() {
+		let startProperties = startFrame()
+		
 		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? cornerRadius
 		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
 		containerView.addSubview(contentViewController.view)
-		
-		let startProperties = startFrame()
 		containerView.frame = startProperties.frame
-		if startProperties.scale != 0 {
+		contentViewController.view.frame = containerView.bounds
+		
+		if startProperties.scale != 1.0 {
 			containerView.transform = CGAffineTransform(scaleX: startProperties.scale, y: startProperties.scale)
 			containerView.alpha = 0.0
 		}
@@ -233,22 +273,62 @@ public class NKModalController: UIViewController {
 			self.containerView.transform = .identity
 			self.containerView.frame = self.presentFrame()
 			self.containerView.alpha = 1.0
-			self.contentViewController.view.frame = self.containerView.bounds
-			
 			self.animatedView?.alpha = 0.0
 		}) { (finished) in
 			self.view.setNeedsLayout()
 			self.contentViewController.view.frame = self.containerView.bounds
+			self.delegate?.modalController(self, didPresent: self.contentViewController)
 		}
 	}
 	
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
+		delegate?.modalController(self, willDismiss: contentViewController)
 		
+		let duration = delegate?.animationDuration(modalController: self) ?? animationDuration
+		let targetProperties = dismissFrame()
+		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
+		
+		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
+			self.view.backgroundColor = .clear
+			if self.animatedView != nil || targetProperties.scale != 1.0 {
+				self.containerView.alpha = 0.0
+			}
+			self.containerView.frame = targetProperties.frame
+			self.containerView.transform = transform
+		}) { (finished) in
+			if let lastPosition = self.lastPosition {
+				lastPosition.container?.addSubview(self.contentViewController.view)
+				self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
+				self.contentViewController.view.frame = lastPosition.frame
+				self.contentViewController.view.setNeedsLayout()
+			}
+			
+			self.animatedView?.alpha = self.lastAnimatedViewAlpha
+			
+			super.dismiss(animated: false) {
+				self.lastWindow?.makeKeyAndVisible()
+				
+				self.window?.rootViewController?.resignFirstResponder()
+				self.window?.rootViewController = nil
+				self.window?.removeFromSuperview()
+				self.window = nil
+				
+				self.delegate?.modalController(self, didDismiss: self.contentViewController)
+			}
+		}
 	}
 	
 	// MARK: -
 	
+	private var presentPosition: NKModalPresentPosition {
+		return delegate?.presentPosition(modalController: self) ?? .center
+	}
+	
 	func startFrame() -> (frame: CGRect, scale: CGFloat) {
+		if let lastContainer = lastPosition?.container {
+			return (lastContainer.convert(contentViewController.view.frame, to: view), 1.0)
+		}
+		
 		if let animatedView = animatedView ?? contentViewController.view.superview {
 			return (frame: animatedView.convert(animatedView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
 		}
@@ -257,7 +337,6 @@ public class NKModalController: UIViewController {
 		var scaleValue: CGFloat = 1.0
 		var presentAnimation: NKModalPresentAnimation = delegate?.presentAnimation(modalController: self) ?? .auto
 		if presentAnimation == .auto {
-			let presentPosition: NKModalPresentPosition = delegate?.presentPosition(modalController: self) ?? .center
 			presentAnimation = presentPosition.toPresentAnimation(view: view)
 		}
 		
@@ -279,7 +358,6 @@ public class NKModalController: UIViewController {
 	}
 	
 	func presentFrame() -> CGRect {
-		let presentPosition: NKModalPresentPosition = delegate?.presentPosition(modalController: self) ?? .center
 		let viewSize = view.bounds.size
 		let contentSize = contentViewController.preferredContentSize
 		
@@ -310,6 +388,39 @@ public class NKModalController: UIViewController {
 		}
 		
 		return CGRect(origin: origin, size: contentSize)
+	}
+	
+	func dismissFrame() -> (frame: CGRect, scale: CGFloat) {
+		if let lastPosition = lastPosition, lastPosition.container != nil {
+			return (lastPosition.frame, 1.0)
+		}
+		
+		if let animatedView = animatedView {
+			return (frame: animatedView.convert(animatedView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
+		}
+		
+		var result = presentFrame()
+		var scaleValue: CGFloat = 1.0
+		var dismissAnimation: NKModalDismissAnimation = delegate?.dismissAnimation(modalController: self) ?? .auto
+		if dismissAnimation == .auto {
+			dismissAnimation = presentPosition.toDismissAnimation(view: view)
+		}
+		
+		switch dismissAnimation {
+		case .auto: break
+		case .toTop:
+			result.origin.y -= result.size.height
+		case .toLeft:
+			result.origin.x -= result.size.width
+		case .toBottom:
+			result.origin.y += result.size.height
+		case .toRight:
+			result.origin.x += result.size.width
+		case .toCenter(let scale):
+			scaleValue = scale
+		}
+		
+		return (frame: result, scale: scaleValue)
 	}
 	
 }
