@@ -190,7 +190,7 @@ public class NKModalController: UIViewController {
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView?, frame: CGRect)?
 
-	public init(viewController: UIViewController) {
+	internal init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
 		
 		modalTransitionStyle = .crossDissolve
