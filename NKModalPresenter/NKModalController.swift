@@ -14,6 +14,7 @@ public enum NKModalPresentPosition: Equatable {
 	case bottom
 	case right
 	case center
+	case fullscreen
 	case custom(frame: CGRect)
 }
 
@@ -101,6 +102,8 @@ extension NKModalPresentPosition {
 			return .fromRight
 		case .center:
 			return .fromCenter(scale: 0.8)
+		case .fullscreen:
+			return .fromBottom
 		case .custom(frame: let frame):
 			let viewSize = view.frame.size
 			let origin = frame.origin
@@ -134,6 +137,8 @@ extension NKModalPresentPosition {
 			return .toRight
 		case .center:
 			return .toCenter(scale: 0.8)
+		case .fullscreen:
+			return .toBottom
 		case .custom(frame: let frame):
 			let viewSize = view.frame.size
 			let origin = frame.origin
@@ -371,7 +376,7 @@ public class NKModalController: UIViewController {
 	
 	func presentFrame() -> CGRect {
 		let viewSize = view.bounds.size
-		let contentSize = contentViewController.preferredContentSize
+		var contentSize = contentViewController.preferredContentSize
 		
 		var origin: CGPoint = .zero
 		switch presentPosition {
@@ -394,7 +399,10 @@ public class NKModalController: UIViewController {
 		case .center:
 			origin.x = (viewSize.width - contentSize.width)/2
 			origin.y = (viewSize.height - contentSize.height)/2
-			
+		case .fullscreen:
+			origin.x = 0
+			origin.y = 0
+			contentSize = viewSize
 		case .custom(let frame):
 			return frame
 		}
