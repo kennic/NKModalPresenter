@@ -200,8 +200,12 @@ public class NKModalController: UIViewController {
 		}
 		
 		presentingViewController?.present(self, animated: false, completion: {
-			
+			self.showView()
 		})
+	}
+	
+	func showView() {
+		containerView.addSubview(contentViewController.view)
 	}
 	
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {

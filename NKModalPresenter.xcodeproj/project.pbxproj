@@ -18,6 +18,7 @@
 		63E2330D2438B790009995E9 /* NKModalPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E2330B2438B790009995E9 /* NKModalPresenter.swift */; };
 		63E2330F243978F9009995E9 /* NKModalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E2330E243978F9009995E9 /* NKModalController.swift */; };
 		63E23310243978F9009995E9 /* NKModalController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E2330E243978F9009995E9 /* NKModalController.swift */; };
+		63E23312243B0064009995E9 /* DialogViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E23311243B0064009995E9 /* DialogViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		63E2330A2438B75C009995E9 /* Example.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Example.entitlements; sourceTree = "<group>"; };
 		63E2330B2438B790009995E9 /* NKModalPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NKModalPresenter.swift; sourceTree = "<group>"; };
 		63E2330E243978F9009995E9 /* NKModalController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NKModalController.swift; sourceTree = "<group>"; };
+		63E23311243B0064009995E9 /* DialogViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +93,7 @@
 				63E232F82438B742009995E9 /* AppDelegate.swift */,
 				63E232FA2438B742009995E9 /* SceneDelegate.swift */,
 				63E232FC2438B742009995E9 /* ViewController.swift */,
+				63E23311243B0064009995E9 /* DialogViewController.swift */,
 				63E232FE2438B742009995E9 /* Main.storyboard */,
 				63E233012438B744009995E9 /* Assets.xcassets */,
 				63E233032438B744009995E9 /* LaunchScreen.storyboard */,
@@ -222,6 +225,7 @@
 			files = (
 				63E232FD2438B742009995E9 /* ViewController.swift in Sources */,
 				63E232F92438B742009995E9 /* AppDelegate.swift in Sources */,
+				63E23312243B0064009995E9 /* DialogViewController.swift in Sources */,
 				63E232FB2438B742009995E9 /* SceneDelegate.swift in Sources */,
 				63E2330D2438B790009995E9 /* NKModalPresenter.swift in Sources */,
 				63E23310243978F9009995E9 /* NKModalController.swift in Sources */,

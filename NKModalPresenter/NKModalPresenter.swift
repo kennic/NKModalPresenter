@@ -15,8 +15,10 @@ public class NKModalPresenter {
 		
 	}
 	
-	public func present(viewController: UIViewController, animatedFrom view: UIView) -> NKModalController {
+	@discardableResult
+	public func present(viewController: UIViewController, animatedFrom view: UIView? = nil) -> NKModalController {
 		let modalController = NKModalController(viewController: viewController)
+		modalController.present(animatedFrom: view)
 		return modalController
 	}
 	
