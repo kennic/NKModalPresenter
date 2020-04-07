@@ -192,6 +192,7 @@ public class NKModalController: NKModalContainerViewController {
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
+	var keyboardHeight: CGFloat = 0
 	
 	var tapGesture: UITapGestureRecognizer?
 	var panGesture: UIPanGestureRecognizer?
@@ -231,6 +232,16 @@ public class NKModalController: NKModalContainerViewController {
 		
 		panGesture = UIPanGestureRecognizer(target: self, action: #selector(onPan))
 		view.addGestureRecognizer(panGesture!)
+	}
+	
+	public override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+		registerKeyboardNotifications()
+	}
+	
+	public override func viewDidDisappear(_ animated: Bool) {
+		super.viewDidDisappear(animated)
+		NotificationCenter.default.removeObserver(self)
 	}
 	
 	// MARK: -
@@ -304,6 +315,7 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
+		guard contentViewController != nil else { return }
 		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? Self.cornerRadius
 		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
 		
@@ -319,7 +331,10 @@ public class NKModalController: NKModalContainerViewController {
 		}) { (finished) in
 			self.removeCapturedView(&self.anchorCapturedView)
 			self.view.setNeedsLayout()
-			self.contentViewController.view.frame = self.containerView.bounds
+			if self.contentViewController != nil {
+				self.contentViewController.view.frame = self.containerView.bounds
+			}
+			
 			self.setNeedsStatusBarAppearanceUpdate()
 			completion?()
 		}
@@ -392,6 +407,11 @@ public class NKModalController: NKModalContainerViewController {
 	
 	// MARK: -
 	
+	func registerKeyboardNotifications() {
+	    NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+	    NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+	}
+	
 	private func capture(_ view: UIView) -> UIImageView {
 		let imageView = UIImageView(image: captureImage(view))
 		imageView.clipsToBounds = true
@@ -460,7 +480,8 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	func presentFrame() -> CGRect {
-		let viewSize = view.bounds.size
+		var viewSize = view.bounds.size
+		viewSize.height -= keyboardHeight
 		var contentSize = contentViewController.preferredContentSize
 		
 		var origin: CGPoint = .zero
@@ -489,7 +510,8 @@ public class NKModalController: NKModalContainerViewController {
 			origin.y = 0
 			contentSize = viewSize
 		case .custom(let frame):
-			return frame
+			origin = frame.origin
+			contentSize = frame.size
 		}
 		
 		return CGRect(origin: origin, size: contentSize)
@@ -531,9 +553,11 @@ public class NKModalController: NKModalContainerViewController {
 	fileprivate var touchPoint: CGPoint = .zero
 	fileprivate var originPoint: CGPoint = .zero
 	fileprivate var dismissAnimation: NKModalDismissAnimation?
+	
 	@objc func onPan(_ gesture: UIPanGestureRecognizer) {
 		let enablePanGesture = delegate?.shouldDragToDismiss(modalController: self) ?? false
 		guard enablePanGesture else { return }
+		
 		let state = gesture.state
 		let currentPoint = gesture.location(in: view)
 		
@@ -601,8 +625,31 @@ public class NKModalController: NKModalContainerViewController {
 		}
 	}
 	
+	@objc func keyboardWillShow(_ notification: Notification) {
+		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? false
+		guard avoidKeyboard else { return }
+		
+		guard let userInfo = notification.userInfo as? [String : AnyObject] else { return }
+		guard let isLocalKeyboard: Bool = userInfo[UIResponder.keyboardIsLocalUserInfoKey]?.boolValue, isLocalKeyboard else { return }
+		guard let endFrame: CGRect = userInfo[UIResponder.keyboardFrameEndUserInfoKey]?.cgRectValue else { return }
+		guard keyboardHeight != endFrame.size.height else { return }
+		
+		keyboardHeight = endFrame.size.height
+		updateLayout(duration: 0.5)
+	}
+	
+	@objc func keyboardWillHide(_ notification: Notification) {
+		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? false
+		guard avoidKeyboard else { return }
+		guard keyboardHeight != 0.0 else { return }
+		
+		keyboardHeight = 0.0
+		updateLayout(duration: 0.5)
+	}
+	
 	deinit {
 		tapGesture?.delegate = nil
+		NotificationCenter.default.removeObserver(self)
 	}
 	
 }
