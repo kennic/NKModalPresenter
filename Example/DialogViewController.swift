@@ -157,7 +157,7 @@ extension DialogViewController: NKModalControllerDelegate {
 		return true
 	}
 	
-	func shouldDragDownToDismiss(modalController: NKModalController) -> Bool {
+	func shouldDragToDismiss(modalController: NKModalController) -> Bool {
 		return true
 	}
 	

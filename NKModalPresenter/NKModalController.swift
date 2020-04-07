@@ -45,7 +45,7 @@ public protocol NKModalControllerDelegate {
 	func modalController(_ controller: NKModalController, dragState: UIGestureRecognizer.State)
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool
-	func shouldDragDownToDismiss(modalController: NKModalController) -> Bool
+	func shouldDragToDismiss(modalController: NKModalController) -> Bool
 	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool
 	
 	func presentingViewController(modalController: NKModalController) -> UIViewController?
@@ -68,7 +68,7 @@ public extension NKModalControllerDelegate {
 	func modalController(_ controller: NKModalController, dragState: UIGestureRecognizer.State) {}
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool { return false }
-	func shouldDragDownToDismiss(modalController: NKModalController) -> Bool { return false }
+	func shouldDragToDismiss(modalController: NKModalController) -> Bool { return false }
 	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool { return false }
 	
 	func presentingViewController(modalController: NKModalController) -> UIViewController? { return nil }
@@ -532,7 +532,7 @@ public class NKModalController: NKModalContainerViewController {
 	fileprivate var originPoint: CGPoint = .zero
 	fileprivate var dismissAnimation: NKModalDismissAnimation?
 	@objc func onPan(_ gesture: UIPanGestureRecognizer) {
-		let enablePanGesture = delegate?.shouldDragDownToDismiss(modalController: self) ?? false
+		let enablePanGesture = delegate?.shouldDragToDismiss(modalController: self) ?? false
 		guard enablePanGesture else { return }
 		let state = gesture.state
 		let currentPoint = gesture.location(in: view)
