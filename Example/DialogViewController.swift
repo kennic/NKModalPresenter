@@ -149,4 +149,8 @@ extension DialogViewController: UITextFieldDelegate {
 
 extension DialogViewController: NKModalControllerDelegate {
 	
+	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition {
+		return .center
+	}
+	
 }

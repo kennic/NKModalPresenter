@@ -65,7 +65,7 @@ public protocol NKModalControllerDelegate {
 	
 }
 
-extension NKModalControllerDelegate {
+public extension NKModalControllerDelegate {
 	
 	func modalController(_ controller: NKModalController, willPresent viewController: UIViewController) {}
 	func modalController(_ controller: NKModalController, didPresent viewController: UIViewController) {}
@@ -181,6 +181,8 @@ public class NKModalController: UIViewController {
 	static let didDismiss = Notification.Name(rawValue: "NKModalControllerDidDismiss")
 	
 	public fileprivate(set) var contentViewController: UIViewController!
+	public fileprivate(set) var isPresenting = false
+	public fileprivate(set) var isDismissing = false
 	public var animatedView: UIView?
 	public var lastAnimatedViewAlpha: CGFloat = 1.0
 	public var delegate: NKModalControllerDelegate?
@@ -226,6 +228,9 @@ public class NKModalController: UIViewController {
 	// MARK: -
 	
 	public func present(animatedFrom view: UIView?) {
+		guard !isPresenting else { return }
+		isPresenting = true
+		
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
@@ -275,12 +280,16 @@ public class NKModalController: UIViewController {
 		}
 		
 		updateLayout(duration: nil) {
+			self.isPresenting = false
 			self.delegate?.modalController(self, didPresent: self.contentViewController)
 			NotificationCenter.default.post(name: NKModalController.didPresent, object: self, userInfo: nil)
 		}
 	}
 	
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
+		guard !isDismissing else { return }
+		isDismissing = true
+		
 		delegate?.modalController(self, willDismiss: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
 		
@@ -306,6 +315,7 @@ public class NKModalController: UIViewController {
 			self.animatedView?.alpha = self.lastAnimatedViewAlpha
 			
 			super.dismiss(animated: false) {
+				self.isDismissing = false
 				self.lastWindow?.makeKeyAndVisible()
 				
 				self.window?.rootViewController?.resignFirstResponder()
@@ -313,9 +323,8 @@ public class NKModalController: UIViewController {
 				self.window?.removeFromSuperview()
 				self.window = nil
 				
-				self.contentViewController = nil
-				
 				self.delegate?.modalController(self, didDismiss: self.contentViewController)
+				self.contentViewController = nil
 				NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
 			}
 		}
@@ -367,13 +376,13 @@ public class NKModalController: UIViewController {
 		switch presentAnimation {
 		case .auto: break
 		case .fromTop:
-			result.origin.y -= result.size.height
+			result.origin.y = -result.size.height
 		case .fromLeft:
-			result.origin.x -= result.size.width
+			result.origin.x = -result.size.width
 		case .fromBottom:
-			result.origin.y += result.size.height
+			result.origin.y = view.bounds.size.height
 		case .fromRight:
-			result.origin.x += result.size.width
+			result.origin.x = view.bounds.size.width
 		case .fromCenter(let scale):
 			scaleValue = scale
 		}
@@ -436,13 +445,13 @@ public class NKModalController: UIViewController {
 		switch dismissAnimation {
 		case .auto: break
 		case .toTop:
-			result.origin.y -= result.size.height
+			result.origin.y = -result.size.height
 		case .toLeft:
-			result.origin.x -= result.size.width
+			result.origin.x = -result.size.width
 		case .toBottom:
-			result.origin.y += result.size.height
+			result.origin.y = view.bounds.size.height
 		case .toRight:
-			result.origin.x += result.size.width
+			result.origin.x = view.bounds.size.width
 		case .toCenter(let scale):
 			scaleValue = scale
 		}
