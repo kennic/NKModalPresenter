@@ -90,7 +90,7 @@ public class NKModalPresenter {
 
 extension UIViewController {
 	
-	var modalController: NKModalController? {
+	public var modalController: NKModalController? {
 		return NKModalPresenter.shared.modalController(containing: self)
 	}
 	
