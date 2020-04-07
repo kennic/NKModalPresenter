@@ -36,19 +36,13 @@ public enum NKModalDismissAnimation: Equatable {
 	case toCenter(scale: CGFloat)
 }
 
-public enum NKModalDragAction: Equatable {
-	case started
-	case ended
-	case canceled
-}
-
 public protocol NKModalControllerDelegate {
 	
 	func modalController(_ controller: NKModalController, willPresent viewController: UIViewController)
 	func modalController(_ controller: NKModalController, didPresent viewController: UIViewController)
 	func modalController(_ controller: NKModalController, willDismiss viewController: UIViewController)
 	func modalController(_ controller: NKModalController, didDismiss viewController: UIViewController)
-	func modalController(_ controller: NKModalController, dragAction: NKModalDragAction)
+	func modalController(_ controller: NKModalController, dragState: UIGestureRecognizer.State)
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool
 	func shouldDragDownToDismiss(modalController: NKModalController) -> Bool
@@ -71,7 +65,7 @@ public extension NKModalControllerDelegate {
 	func modalController(_ controller: NKModalController, didPresent viewController: UIViewController) {}
 	func modalController(_ controller: NKModalController, willDismiss viewController: UIViewController) {}
 	func modalController(_ controller: NKModalController, didDismiss viewController: UIViewController) {}
-	func modalController(_ controller: NKModalController, dragAction: NKModalDragAction) {}
+	func modalController(_ controller: NKModalController, dragState: UIGestureRecognizer.State) {}
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool { return false }
 	func shouldDragDownToDismiss(modalController: NKModalController) -> Bool { return false }
@@ -198,7 +192,9 @@ public class NKModalController: NKModalContainerViewController {
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
+	
 	var tapGesture: UITapGestureRecognizer?
+	var panGesture: UIPanGestureRecognizer?
 
 	public init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
@@ -232,6 +228,9 @@ public class NKModalController: NKModalContainerViewController {
 		tapGesture?.delaysTouchesEnded = false
 		tapGesture?.cancelsTouchesInView = false
 		view.addGestureRecognizer(tapGesture!)
+		
+		panGesture = UIPanGestureRecognizer(target: self, action: #selector(onPan))
+		view.addGestureRecognizer(panGesture!)
 	}
 	
 	// MARK: -
@@ -529,10 +528,77 @@ public class NKModalController: NKModalContainerViewController {
 		return (frame: result, scale: scaleValue)
 	}
 	
-	@objc func onTapOutside() {
-		let enableTapOutsideToDismiss = delegate?.shouldTapOutsideToDismiss(modalController: self) ?? false
-		guard enableTapOutsideToDismiss else { return }
-		dismiss(animated: true)
+	fileprivate var touchPoint: CGPoint = .zero
+	fileprivate var originPoint: CGPoint = .zero
+	fileprivate var dismissAnimation: NKModalDismissAnimation?
+	@objc func onPan(_ gesture: UIPanGestureRecognizer) {
+		let enablePanGesture = delegate?.shouldDragDownToDismiss(modalController: self) ?? false
+		guard enablePanGesture else { return }
+		let state = gesture.state
+		let currentPoint = gesture.location(in: view)
+		
+		if dismissAnimation == nil {
+			dismissAnimation = delegate?.dismissAnimation(modalController: self) ?? .auto
+			if dismissAnimation == .auto {
+				dismissAnimation = presentPosition.toDismissAnimation(view: view)
+			}
+		}
+		
+		if state == .began {
+			touchPoint = currentPoint
+			originPoint = containerView.frame.origin
+			delegate?.modalController(self, dragState: state)
+		}
+		else {
+			var distance: CGFloat
+			
+			if dismissAnimation == .toTop {
+			    distance = touchPoint.y - currentPoint.y
+			} else if dismissAnimation == .toLeft {
+			    distance = touchPoint.x - currentPoint.x
+			} else if dismissAnimation == .toRight {
+			    distance = currentPoint.x - touchPoint.x
+			} else {
+			    distance = currentPoint.y - touchPoint.y
+			}
+			
+			if state == .changed {
+				if dismissAnimation == .toLeft {
+				    var newFrame = containerView.frame
+				    newFrame.origin.x = min(originPoint.x - distance, originPoint.x)
+				    containerView.frame = newFrame
+				} else if dismissAnimation == .toRight {
+				    var newFrame = containerView.frame
+				    newFrame.origin.x = max(originPoint.x + distance, originPoint.x)
+				    containerView.frame = newFrame
+				} else if dismissAnimation == .toTop {
+				    var newFrame = containerView.frame
+				    newFrame.origin.y = min(originPoint.y - distance, originPoint.y)
+				    containerView.frame = newFrame
+				} else {
+				    var newFrame = containerView.frame
+				    newFrame.origin.y = max(originPoint.y + distance, originPoint.y)
+				    containerView.frame = newFrame
+				}
+				delegate?.modalController(self, dragState: state)
+			}
+			else if state == .ended || state == .cancelled || state == .failed {
+				if state == .ended && distance > 60 {
+					delegate?.modalController(self, dragState: state)
+					dismiss(animated: true)
+				}
+				else {
+					UIView.animate(withDuration: 0.3, animations: {
+						var newFrame = self.containerView.frame
+						newFrame.origin.x = self.originPoint.x
+						newFrame.origin.y = self.originPoint.y
+						self.containerView.frame = newFrame
+					}) { (finished) in
+						self.delegate?.modalController(self, dragState: state)
+					}
+				}
+			}
+		}
 	}
 	
 	deinit {
