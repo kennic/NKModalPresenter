@@ -174,13 +174,12 @@ extension UIWindow {
 
 // MARK: - NKModalController
 
-public class NKModalController: UIViewController {
+public class NKModalController: NKModalContainerViewController {
 	public static let willPresent = Notification.Name(rawValue: "NKModalControllerWillPresent")
 	public static let didPresent = Notification.Name(rawValue: "NKModalControllerDidPresent")
 	public static let willDismiss = Notification.Name(rawValue: "NKModalControllerWillDismiss")
 	public static let didDismiss = Notification.Name(rawValue: "NKModalControllerDidDismiss")
 	
-	public fileprivate(set) var contentViewController: UIViewController!
 	public fileprivate(set) var isPresenting = false
 	public fileprivate(set) var isDismissing = false
 	public var animatedView: UIView?
@@ -322,7 +321,7 @@ public class NKModalController: UIViewController {
 			self.removeCapturedView(&self.anchorCapturedView)
 			self.view.setNeedsLayout()
 			self.contentViewController.view.frame = self.containerView.bounds
-			
+			self.setNeedsStatusBarAppearanceUpdate()
 			completion?()
 		}
 	}
@@ -374,6 +373,8 @@ public class NKModalController: UIViewController {
 				}
 				
 				super.dismiss(animated: false) {
+					self.setNeedsStatusBarAppearanceUpdate()
+					
 					self.isDismissing = false
 					self.lastWindow?.makeKeyAndVisible()
 					
@@ -542,8 +543,6 @@ public class NKModalController: UIViewController {
 
 extension NKModalController: UIGestureRecognizerDelegate {
 	
-	
-	
 	public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
 	    if touch.view == view {
 			let enableTapOutsideToDismiss = delegate?.shouldTapOutsideToDismiss(modalController: self) ?? false
@@ -558,46 +557,38 @@ extension NKModalController: UIGestureRecognizerDelegate {
 	
 }
 
-class NKModalContainerViewController: UIViewController {
-	weak var contentViewController: UIViewController?
+public class NKModalContainerViewController: UIViewController {
+	public fileprivate(set) var contentViewController: UIViewController!
 	
 	var visibleViewController: UIViewController? {
 		return (contentViewController as? UINavigationController)?.visibleViewController ?? contentViewController
 	}
 	
-	init() {
-		super.init(nibName: nil, bundle: nil)
-	}
-	
-	required init?(coder: NSCoder) {
-		fatalError("init(coder:) has not been implemented")
-	}
-	
 	// Orientation
 	
-	override var shouldAutorotate: Bool {
+	public override var shouldAutorotate: Bool {
 		return visibleViewController?.shouldAutorotate ?? true
 	}
 	
-	override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+	public override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
 		return visibleViewController?.supportedInterfaceOrientations ?? .all
 	}
 	
-	override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
+	public override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
 		return visibleViewController?.preferredInterfaceOrientationForPresentation ?? UIApplication.shared.statusBarOrientation
 	}
 	
 	// Statusbar
 	
-	override var prefersStatusBarHidden: Bool {
+	public override var prefersStatusBarHidden: Bool {
 		return visibleViewController?.prefersStatusBarHidden ?? false
 	}
 	
-	override var preferredStatusBarStyle: UIStatusBarStyle {
+	public override var preferredStatusBarStyle: UIStatusBarStyle {
 		return visibleViewController?.preferredStatusBarStyle ?? .default
 	}
 	
-	override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
+	public override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
 		return visibleViewController?.preferredStatusBarUpdateAnimation ?? .fade
 	}
 	
