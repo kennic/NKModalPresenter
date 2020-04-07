@@ -199,6 +199,7 @@ public class NKModalController: UIViewController {
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
+	var tapGesture: UITapGestureRecognizer?
 
 	public init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
@@ -226,6 +227,12 @@ public class NKModalController: UIViewController {
 		
 		view.backgroundColor = .clear
 		view.addSubview(containerView)
+		
+		tapGesture = UITapGestureRecognizer(target: nil, action: nil)
+		tapGesture?.delegate = self
+		tapGesture?.delaysTouchesEnded = false
+		tapGesture?.cancelsTouchesInView = false
+		view.addGestureRecognizer(tapGesture!)
 	}
 	
 	// MARK: -
@@ -253,7 +260,7 @@ public class NKModalController: UIViewController {
 			presentingViewController = containerViewController
 			
 			if #available(iOS 13.0, *) {
-				if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+				if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive}) as? UIWindowScene {
 					window = UIWindow(windowScene: scene)
 				}
 			}
@@ -519,6 +526,34 @@ public class NKModalController: UIViewController {
 		}
 		
 		return (frame: result, scale: scaleValue)
+	}
+	
+	@objc func onTapOutside() {
+		let enableTapOutsideToDismiss = delegate?.shouldTapOutsideToDismiss(modalController: self) ?? false
+		guard enableTapOutsideToDismiss else { return }
+		dismiss(animated: true)
+	}
+	
+	deinit {
+		tapGesture?.delegate = nil
+	}
+	
+}
+
+extension NKModalController: UIGestureRecognizerDelegate {
+	
+	
+	
+	public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+	    if touch.view == view {
+			let enableTapOutsideToDismiss = delegate?.shouldTapOutsideToDismiss(modalController: self) ?? false
+			if enableTapOutsideToDismiss {
+				dismiss(animated: true)
+				return false
+			}
+	    }
+	
+	    return true
 	}
 	
 }
