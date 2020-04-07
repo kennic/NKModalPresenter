@@ -280,7 +280,7 @@ public class NKModalController: UIViewController {
 		contentViewController.view.frame = containerView.bounds
 		
 		if let startView = animatedView, startView.window != nil {
-			anchorCapturedView = UIImageView(image: UIImage(view: startView))
+			anchorCapturedView = UIImageView(image: capture(startView))
 			anchorCapturedView?.clipsToBounds = true
 			anchorCapturedView?.alpha = 1.0
 			anchorCapturedView?.contentMode = .scaleToFill
@@ -337,7 +337,7 @@ public class NKModalController: UIViewController {
 		
 		if let startView = animatedView, startView.window != nil {
 			startView.alpha = 1.0
-			anchorCapturedView = UIImageView(image: UIImage(view: startView))
+			anchorCapturedView = UIImageView(image: capture(startView))
 			anchorCapturedView?.clipsToBounds = true
 			anchorCapturedView?.alpha = 0.0
 			anchorCapturedView?.contentMode = .scaleToFill
@@ -392,6 +392,21 @@ public class NKModalController: UIViewController {
 	}
 	
 	// MARK: -
+	
+	private func capture(_ view: UIView) -> UIImage? {
+		UIGraphicsBeginImageContext(view.frame.size)
+		
+		if let context = UIGraphicsGetCurrentContext() {
+			view.layer.render(in: context)
+			
+			if let image = UIGraphicsGetImageFromCurrentImageContext(), let cgImage = image.cgImage {
+				UIGraphicsEndImageContext()
+				return UIImage(cgImage: cgImage)
+			}
+		}
+		
+		return nil
+	}
 	
 	private func removeCapturedView(_ imageView: inout UIImageView?) {
 		imageView?.removeFromSuperview()

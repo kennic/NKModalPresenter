@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		63552EC1243C71C40084B18F /* UIImage+FromView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63552EC0243C71C40084B18F /* UIImage+FromView.swift */; };
-		63552EC2243C71C40084B18F /* UIImage+FromView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63552EC0243C71C40084B18F /* UIImage+FromView.swift */; };
 		63E232EC2438B6BF009995E9 /* NKModalPresenter.h in Headers */ = {isa = PBXBuildFile; fileRef = 63E232EA2438B6BF009995E9 /* NKModalPresenter.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		63E232F92438B742009995E9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E232F82438B742009995E9 /* AppDelegate.swift */; };
 		63E232FB2438B742009995E9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E232FA2438B742009995E9 /* SceneDelegate.swift */; };
@@ -24,7 +22,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		63552EC0243C71C40084B18F /* UIImage+FromView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIImage+FromView.swift"; sourceTree = "<group>"; };
 		63E232E72438B6BF009995E9 /* NKModalPresenter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NKModalPresenter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		63E232EA2438B6BF009995E9 /* NKModalPresenter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NKModalPresenter.h; sourceTree = "<group>"; };
 		63E232EB2438B6BF009995E9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -84,7 +81,6 @@
 				63E2330E243978F9009995E9 /* NKModalController.swift */,
 				63E2330B2438B790009995E9 /* NKModalPresenter.swift */,
 				63E232EA2438B6BF009995E9 /* NKModalPresenter.h */,
-				63552EC0243C71C40084B18F /* UIImage+FromView.swift */,
 				63E232EB2438B6BF009995E9 /* Info.plist */,
 			);
 			path = NKModalPresenter;
@@ -219,7 +215,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				63E2330F243978F9009995E9 /* NKModalController.swift in Sources */,
-				63552EC1243C71C40084B18F /* UIImage+FromView.swift in Sources */,
 				63E2330C2438B790009995E9 /* NKModalPresenter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -229,7 +224,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				63E232FD2438B742009995E9 /* ViewController.swift in Sources */,
-				63552EC2243C71C40084B18F /* UIImage+FromView.swift in Sources */,
 				63E232F92438B742009995E9 /* AppDelegate.swift in Sources */,
 				63E23312243B0064009995E9 /* DialogViewController.swift in Sources */,
 				63E232FB2438B742009995E9 /* SceneDelegate.swift in Sources */,
