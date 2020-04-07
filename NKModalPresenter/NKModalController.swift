@@ -175,10 +175,10 @@ extension UIWindow {
 // MARK: - NKModalController
 
 public class NKModalController: UIViewController {
-	static let willPresent = Notification.Name(rawValue: "NKModalControllerWillPresent")
-	static let didPresent = Notification.Name(rawValue: "NKModalControllerDidPresent")
-	static let willDismiss = Notification.Name(rawValue: "NKModalControllerWillDismiss")
-	static let didDismiss = Notification.Name(rawValue: "NKModalControllerDidDismiss")
+	public static let willPresent = Notification.Name(rawValue: "NKModalControllerWillPresent")
+	public static let didPresent = Notification.Name(rawValue: "NKModalControllerDidPresent")
+	public static let willDismiss = Notification.Name(rawValue: "NKModalControllerWillDismiss")
+	public static let didDismiss = Notification.Name(rawValue: "NKModalControllerDidDismiss")
 	
 	public fileprivate(set) var contentViewController: UIViewController!
 	public fileprivate(set) var isPresenting = false
@@ -192,10 +192,11 @@ public class NKModalController: UIViewController {
 	let backgroundColor = UIColor.black.withAlphaComponent(0.8)
 	let animationDuration: TimeInterval = 0.45
 	let cornerRadius: CGFloat = 8.0
+	
 	let containerView = UIView()
 	var window: UIWindow?
 	var lastWindow: UIWindow?
-	var lastPosition: (container: UIView?, frame: CGRect)?
+	var lastPosition: (container: UIView, frame: CGRect)?
 
 	public init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
@@ -235,7 +236,9 @@ public class NKModalController: UIViewController {
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
 		animatedView = view
-		lastPosition = (contentViewController.view.superview, contentViewController.view.frame)
+		if let container = contentViewController.view.superview {
+			lastPosition = (container, contentViewController.view.frame)
+		}
 		lastAnimatedViewAlpha = view?.alpha ?? contentViewController.view.alpha
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
@@ -305,8 +308,8 @@ public class NKModalController: UIViewController {
 			self.containerView.frame = targetProperties.frame
 			self.containerView.transform = transform
 		}) { (finished) in
-			if let lastPosition = self.lastPosition, let lastContainerView = lastPosition.container {
-				lastContainerView.addSubview(self.contentViewController.view)
+			if let lastPosition = self.lastPosition {
+				lastPosition.container.addSubview(self.contentViewController.view)
 				self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
 				self.contentViewController.view.frame = lastPosition.frame
 				self.contentViewController.view.setNeedsLayout()
@@ -427,7 +430,7 @@ public class NKModalController: UIViewController {
 	}
 	
 	func dismissFrame() -> (frame: CGRect, scale: CGFloat) {
-		if let lastPosition = lastPosition, lastPosition.container != nil {
+		if let lastPosition = lastPosition {
 			return (lastPosition.frame, 1.0)
 		}
 		
