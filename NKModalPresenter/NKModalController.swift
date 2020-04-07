@@ -417,6 +417,7 @@ public class NKModalController: NKModalContainerViewController {
 		imageView.clipsToBounds = true
 		imageView.contentMode = .scaleToFill
 		imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+		imageView.layer.cornerRadius = view.layer.cornerRadius
 		imageView.frame = containerView.bounds
 		return imageView
 	}
