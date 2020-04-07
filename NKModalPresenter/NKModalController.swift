@@ -195,7 +195,7 @@ public class NKModalController: UIViewController {
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView?, frame: CGRect)?
 
-	internal init(viewController: UIViewController) {
+	public init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
 		
 		modalTransitionStyle = .crossDissolve
@@ -265,8 +265,6 @@ public class NKModalController: UIViewController {
 	func showView() {
 		let startProperties = startFrame()
 		
-		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? cornerRadius
-		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
 		containerView.addSubview(contentViewController.view)
 		containerView.frame = startProperties.frame
 		contentViewController.view.frame = containerView.bounds
@@ -276,19 +274,7 @@ public class NKModalController: UIViewController {
 			containerView.alpha = 0.0
 		}
 		
-		let color = delegate?.backgroundColor(modalController: self) ?? backgroundColor
-		let duration = delegate?.animationDuration(modalController: self) ?? animationDuration
-		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
-			self.view.backgroundColor = color
-			self.setNeedsStatusBarAppearanceUpdate()
-			self.containerView.transform = .identity
-			self.containerView.frame = self.presentFrame()
-			self.containerView.alpha = 1.0
-			self.animatedView?.alpha = 0.0
-		}) { (finished) in
-			self.view.setNeedsLayout()
-			self.contentViewController.view.frame = self.containerView.bounds
-			
+		updateLayout(duration: nil) {
 			self.delegate?.modalController(self, didPresent: self.contentViewController)
 			NotificationCenter.default.post(name: NKModalController.didPresent, object: self, userInfo: nil)
 		}
@@ -332,6 +318,27 @@ public class NKModalController: UIViewController {
 				self.delegate?.modalController(self, didDismiss: self.contentViewController)
 				NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
 			}
+		}
+	}
+	
+	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
+		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? cornerRadius
+		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
+		
+		let color = delegate?.backgroundColor(modalController: self) ?? backgroundColor
+		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? animationDuration
+		UIView.animate(withDuration: durationValue, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
+			self.view.backgroundColor = color
+			self.setNeedsStatusBarAppearanceUpdate()
+			self.containerView.transform = .identity
+			self.containerView.frame = self.presentFrame()
+			self.containerView.alpha = 1.0
+			self.animatedView?.alpha = 0.0
+		}) { (finished) in
+			self.view.setNeedsLayout()
+			self.contentViewController.view.frame = self.containerView.bounds
+			
+			completion?()
 		}
 	}
 	
