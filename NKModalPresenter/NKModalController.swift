@@ -42,7 +42,7 @@ public enum NKModalDragAction: Equatable {
 	case canceled
 }
 
-public protocol NKModalControllerDelegate: class {
+public protocol NKModalControllerDelegate {
 	
 	func modalController(_ controller: NKModalController, willPresent viewController: UIViewController)
 	func modalController(_ controller: NKModalController, didPresent viewController: UIViewController)

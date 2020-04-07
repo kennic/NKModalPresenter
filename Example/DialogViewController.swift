@@ -146,3 +146,7 @@ extension DialogViewController: UITextFieldDelegate {
 	}
 	
 }
+
+extension DialogViewController: NKModalControllerDelegate {
+	
+}
