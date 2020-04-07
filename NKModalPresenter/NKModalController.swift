@@ -280,12 +280,8 @@ public class NKModalController: UIViewController {
 		contentViewController.view.frame = containerView.bounds
 		
 		if let startView = animatedView, startView.window != nil {
-			anchorCapturedView = UIImageView(image: capture(startView))
-			anchorCapturedView?.clipsToBounds = true
+			anchorCapturedView = capture(startView)
 			anchorCapturedView?.alpha = 1.0
-			anchorCapturedView?.contentMode = .scaleToFill
-			anchorCapturedView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-			anchorCapturedView?.frame = containerView.bounds
 			containerView.addSubview(anchorCapturedView!)
 			startView.alpha = 0.0
 		}
@@ -337,12 +333,8 @@ public class NKModalController: UIViewController {
 		
 		if let startView = animatedView, startView.window != nil {
 			startView.alpha = 1.0
-			anchorCapturedView = UIImageView(image: capture(startView))
-			anchorCapturedView?.clipsToBounds = true
+			anchorCapturedView = capture(startView)
 			anchorCapturedView?.alpha = 0.0
-			anchorCapturedView?.contentMode = .scaleToFill
-			anchorCapturedView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-			anchorCapturedView?.frame = containerView.bounds
 			containerView.addSubview(anchorCapturedView!)
 			startView.alpha = 0.0
 		}
@@ -393,7 +385,16 @@ public class NKModalController: UIViewController {
 	
 	// MARK: -
 	
-	private func capture(_ view: UIView) -> UIImage? {
+	private func capture(_ view: UIView) -> UIImageView {
+		let imageView = UIImageView(image: captureImage(view))
+		imageView.clipsToBounds = true
+		imageView.contentMode = .scaleToFill
+		imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+		imageView.frame = containerView.bounds
+		return imageView
+	}
+	
+	private func captureImage(_ view: UIView) -> UIImage? {
 		UIGraphicsBeginImageContext(view.frame.size)
 		
 		if let context = UIGraphicsGetCurrentContext() {
