@@ -81,10 +81,10 @@ public extension NKModalControllerDelegate {
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition { return .center }
 	func presentAnimation(modalController: NKModalController) -> NKModalPresentAnimation { return .auto }
 	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation { return .auto }
-	func animationDuration(modalController: NKModalController) -> TimeInterval { return 0.45 }
-	func backgroundColor(modalController: NKModalController) -> UIColor { return UIColor.black.withAlphaComponent(0.75) }
-	func backgroundBlurryValue(modalController: NKModalController) -> CGFloat { return 0.0 }
-	func cornerRadius(modalController: NKModalController) -> CGFloat { return 8.0 }
+	func animationDuration(modalController: NKModalController) -> TimeInterval { return NKModalController.animationDuration }
+	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
+	func backgroundBlurryValue(modalController: NKModalController) -> CGFloat { return NKModalController.backgroundBlurryValue }
+	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
 	
 }
 
@@ -189,14 +189,16 @@ public class NKModalController: UIViewController {
 	public var enableDragDownToDismiss = false
 	
 	// Default values
-	let backgroundColor = UIColor.black.withAlphaComponent(0.8)
-	let animationDuration: TimeInterval = 0.45
-	let cornerRadius: CGFloat = 8.0
+	public static var backgroundBlurryValue: CGFloat = 0.0
+	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
+	public static var animationDuration: TimeInterval = 0.45
+	public static var cornerRadius: CGFloat = 8.0
 	
 	let containerView = UIView()
 	var window: UIWindow?
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView, frame: CGRect)?
+	var anchorCapturedView: UIImageView?
 
 	public init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
@@ -277,6 +279,17 @@ public class NKModalController: UIViewController {
 		containerView.frame = startProperties.frame
 		contentViewController.view.frame = containerView.bounds
 		
+		if let startView = animatedView, startView.window != nil {
+			anchorCapturedView = UIImageView(image: UIImage(view: startView))
+			anchorCapturedView?.clipsToBounds = true
+			anchorCapturedView?.alpha = 1.0
+			anchorCapturedView?.contentMode = .scaleToFill
+			anchorCapturedView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+			anchorCapturedView?.frame = containerView.bounds
+			containerView.addSubview(anchorCapturedView!)
+			startView.alpha = 0.0
+		}
+		
 		if startProperties.scale != 1.0 {
 			containerView.transform = CGAffineTransform(scaleX: startProperties.scale, y: startProperties.scale)
 			containerView.alpha = 0.0
@@ -289,64 +302,21 @@ public class NKModalController: UIViewController {
 		}
 	}
 	
-	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
-		guard !isDismissing else { return }
-		isDismissing = true
-		
-		delegate?.modalController(self, willDismiss: contentViewController)
-		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
-		
-		let duration = delegate?.animationDuration(modalController: self) ?? animationDuration
-		let targetProperties = dismissFrame()
-		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
-		
-		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
-			self.view.backgroundColor = .clear
-			if self.animatedView != nil || targetProperties.scale != 1.0 {
-				self.containerView.alpha = 0.0
-			}
-			self.containerView.frame = targetProperties.frame
-			self.containerView.transform = transform
-		}) { (finished) in
-			if let lastPosition = self.lastPosition {
-				lastPosition.container.addSubview(self.contentViewController.view)
-				self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
-				self.contentViewController.view.frame = lastPosition.frame
-				self.contentViewController.view.setNeedsLayout()
-			}
-			
-			self.animatedView?.alpha = self.lastAnimatedViewAlpha
-			
-			super.dismiss(animated: false) {
-				self.isDismissing = false
-				self.lastWindow?.makeKeyAndVisible()
-				
-				self.window?.rootViewController?.resignFirstResponder()
-				self.window?.rootViewController = nil
-				self.window?.removeFromSuperview()
-				self.window = nil
-				
-				self.delegate?.modalController(self, didDismiss: self.contentViewController)
-				self.contentViewController = nil
-				NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
-			}
-		}
-	}
-	
 	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
-		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? cornerRadius
+		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? Self.cornerRadius
 		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
 		
-		let color = delegate?.backgroundColor(modalController: self) ?? backgroundColor
-		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? animationDuration
+		let color = delegate?.backgroundColor(modalController: self) ?? Self.backgroundColor
+		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? Self.animationDuration
 		UIView.animate(withDuration: durationValue, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
 			self.view.backgroundColor = color
 			self.setNeedsStatusBarAppearanceUpdate()
 			self.containerView.transform = .identity
 			self.containerView.frame = self.presentFrame()
 			self.containerView.alpha = 1.0
-			self.animatedView?.alpha = 0.0
+			self.anchorCapturedView?.alpha = 0.0
 		}) { (finished) in
+			self.removeCapturedView(&self.anchorCapturedView)
 			self.view.setNeedsLayout()
 			self.contentViewController.view.frame = self.containerView.bounds
 			
@@ -354,7 +324,80 @@ public class NKModalController: UIViewController {
 		}
 	}
 	
+	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
+		guard !isDismissing else { return }
+		isDismissing = true
+		
+		delegate?.modalController(self, willDismiss: contentViewController)
+		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
+		
+		let duration = delegate?.animationDuration(modalController: self) ?? Self.animationDuration
+		let targetProperties = dismissFrame()
+		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
+		
+		if let startView = animatedView, startView.window != nil {
+			startView.alpha = 1.0
+			anchorCapturedView = UIImageView(image: UIImage(view: startView))
+			anchorCapturedView?.clipsToBounds = true
+			anchorCapturedView?.alpha = 0.0
+			anchorCapturedView?.contentMode = .scaleToFill
+			anchorCapturedView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+			anchorCapturedView?.frame = containerView.bounds
+			containerView.addSubview(anchorCapturedView!)
+			startView.alpha = 0.0
+		}
+		
+		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
+			self.view.backgroundColor = .clear
+			if targetProperties.scale != 1.0 {
+				self.containerView.alpha = 0.0
+			}
+			if self.animatedView != nil {
+				self.contentViewController.view.alpha = 0.0
+			}
+			
+			self.containerView.frame = targetProperties.frame
+			self.containerView.transform = transform
+			self.anchorCapturedView?.alpha = 1.0
+		}) { (finished) in
+			self.animatedView?.alpha = self.lastAnimatedViewAlpha
+			
+			UIView.animate(withDuration: duration == 0 ? 0.0 : 0.1, animations: {
+				self.anchorCapturedView?.alpha = 0.0
+			}) { (finished) in
+				self.removeCapturedView(&self.anchorCapturedView)
+				
+				if let lastPosition = self.lastPosition {
+					lastPosition.container.addSubview(self.contentViewController.view)
+					self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
+					self.contentViewController.view.frame = lastPosition.frame
+					self.contentViewController.view.setNeedsLayout()
+				}
+				
+				super.dismiss(animated: false) {
+					self.isDismissing = false
+					self.lastWindow?.makeKeyAndVisible()
+					
+					self.window?.rootViewController?.resignFirstResponder()
+					self.window?.rootViewController = nil
+					self.window?.removeFromSuperview()
+					self.window = nil
+					
+					self.delegate?.modalController(self, didDismiss: self.contentViewController)
+					self.contentViewController = nil
+					NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
+				}
+			}
+		}
+	}
+	
 	// MARK: -
+	
+	private func removeCapturedView(_ imageView: inout UIImageView?) {
+		imageView?.removeFromSuperview()
+		imageView?.image = nil
+		imageView = nil
+	}
 	
 	private var presentPosition: NKModalPresentPosition {
 		return delegate?.presentPosition(modalController: self) ?? .center
