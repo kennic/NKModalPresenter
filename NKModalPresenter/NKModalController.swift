@@ -207,6 +207,7 @@ public class NKModalController: NKModalContainerViewController {
 	public var avoidKeyboard = false
 	
 	public fileprivate(set) var contentView: UIView!
+	public var anchorView: UIView?
 	
 	// Default values
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
@@ -222,8 +223,7 @@ public class NKModalController: NKModalContainerViewController {
 	var contentCapturedView: UIImageView?
 	var keyboardHeight: CGFloat = 0
 	var contentSize: CGSize?
-	var animatedView: UIView?
-	var lastAnimatedViewAlpha: CGFloat = 1.0
+	var lastAnchorViewAlpha: CGFloat = 1.0
 	
 	var tapGesture: UITapGestureRecognizer?
 	var panGesture: UIPanGestureRecognizer?
@@ -285,11 +285,11 @@ public class NKModalController: NKModalContainerViewController {
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
-		animatedView = view?.window != nil ? view : nil
+		anchorView = view?.window != nil ? view : nil
 		if let container = contentView.superview {
 			lastPosition = (container, contentView.frame)
 		}
-		lastAnimatedViewAlpha = view?.alpha ?? contentView.alpha
+		lastAnchorViewAlpha = view?.alpha ?? contentView.alpha
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
 		if presentingViewController == nil {
@@ -326,7 +326,7 @@ public class NKModalController: NKModalContainerViewController {
 		containerView.addSubview(contentView)
 		containerView.frame = startProperties.frame
 		
-		if let anchorView = animatedView {
+		if let anchorView = anchorView {
 			contentView.frame = presentFrame()
 			contentCapturedView = capture(contentView)
 			contentCapturedView?.alpha = 0.0
@@ -408,7 +408,7 @@ public class NKModalController: NKModalContainerViewController {
 		let targetProperties = dismissFrame()
 		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
 		
-		if let anchorView = animatedView, duration > 0.0 {
+		if let anchorView = anchorView, duration > 0.0 {
 			contentCapturedView = capture(contentView)
 			contentCapturedView?.alpha = 1.0
 			contentCapturedView?.contentMode = .scaleToFill
@@ -428,14 +428,14 @@ public class NKModalController: NKModalContainerViewController {
 			self.view.backgroundColor = .clear
 			
 			if self.lastPosition != nil {
-				self.contentView.alpha = self.lastAnimatedViewAlpha
+				self.contentView.alpha = self.lastAnchorViewAlpha
 				self.containerView.layer.cornerRadius = 0.0
 			}
 			else {
 				if targetProperties.scale != 1.0 {
 					self.containerView.alpha = 0.0
 				}
-				if self.animatedView != nil {
+				if self.anchorView != nil {
 					self.contentView.alpha = 0.0
 				}
 			}
@@ -446,12 +446,12 @@ public class NKModalController: NKModalContainerViewController {
 			self.anchorCapturedView?.alpha = 1.0
 			self.contentCapturedView?.alpha = 0.0
 		}) { (finished) in
-			self.animatedView?.alpha = self.lastAnimatedViewAlpha
+			self.anchorView?.alpha = self.lastAnchorViewAlpha
 			self.removeCapturedView(&self.contentCapturedView)
 			
 			if let lastPosition = self.lastPosition {
 				lastPosition.container.addSubview(self.contentView)
-				self.contentView.alpha = self.lastAnimatedViewAlpha
+				self.contentView.alpha = self.lastAnchorViewAlpha
 				self.contentView.frame = lastPosition.frame
 				self.contentView.setNeedsLayout()
 			}
@@ -550,8 +550,8 @@ public class NKModalController: NKModalContainerViewController {
 			return (lastContainer.convert(contentView.frame, to: view), 1.0)
 		}
 		
-		if let animatedView = animatedView ?? contentView.superview {
-			return (frame: animatedView.convert(animatedView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
+		if let anchorView = anchorView ?? contentView.superview {
+			return (frame: anchorView.convert(anchorView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
 		}
 		
 		var result = presentFrame()
@@ -625,8 +625,8 @@ public class NKModalController: NKModalContainerViewController {
 			return (lastPosition.frame, 1.0)
 		}
 		
-		if let animatedView = animatedView {
-			return (frame: animatedView.convert(animatedView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
+		if let anchorView = anchorView {
+			return (frame: anchorView.convert(anchorView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
 		}
 		
 		var result = presentFrame()
