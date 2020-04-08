@@ -28,7 +28,7 @@ class ViewController: UIViewController {
 	let button1 = UIButton.appButton(title: "Animated from button")
 	let button2 = UIButton.appButton(title: "Present from center")
 	let button3 = UIButton.appButton(title: "Present existing")
-	let testViewController = DialogViewController()
+	let testViewController = DialogViewController(contentSize: CGSize(width: 300, height: 300))
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
@@ -68,10 +68,10 @@ class ViewController: UIViewController {
 	
 	@objc func onButtonSelected(_ button: UIButton) {
 		if button == button1 {
-			NKModalPresenter.shared.present(viewController: DialogViewController(), animatedFrom: button)
+			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))), animatedFrom: button)
 		}
 		else if button == button2 {
-			NKModalPresenter.shared.present(viewController: DialogViewController())
+			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))))
 		}
 		else if button == button3 {
 			NKModalPresenter.shared.present(viewController: testViewController)

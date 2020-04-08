@@ -54,7 +54,6 @@ public protocol NKModalControllerDelegate {
 	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation
 	func animationDuration(modalController: NKModalController) -> TimeInterval
 	func backgroundColor(modalController: NKModalController) -> UIColor
-	func backgroundBlurryValue(modalController: NKModalController) -> CGFloat
 	func cornerRadius(modalController: NKModalController) -> CGFloat
 	
 }
@@ -77,7 +76,6 @@ public extension NKModalControllerDelegate {
 	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation { return .auto }
 	func animationDuration(modalController: NKModalController) -> TimeInterval { return NKModalController.animationDuration }
 	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
-	func backgroundBlurryValue(modalController: NKModalController) -> CGFloat { return NKModalController.backgroundBlurryValue }
 	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
 	
 }
@@ -182,7 +180,6 @@ public class NKModalController: NKModalContainerViewController {
 	public var enableDragDownToDismiss = false
 	
 	// Default values
-	public static var backgroundBlurryValue: CGFloat = 0.0
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
 	public static var animationDuration: TimeInterval = 0.45
 	public static var cornerRadius: CGFloat = 8.0
@@ -193,6 +190,7 @@ public class NKModalController: NKModalContainerViewController {
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
 	var keyboardHeight: CGFloat = 0
+	var contentSize: CGSize?
 	
 	var tapGesture: UITapGestureRecognizer?
 	var panGesture: UIPanGestureRecognizer?
@@ -289,7 +287,7 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	func showView() {
-		let startProperties = startFrame()
+		let startProperties = initFrame()
 		
 		containerView.addSubview(contentViewController.view)
 		containerView.frame = startProperties.frame
@@ -307,7 +305,7 @@ public class NKModalController: NKModalContainerViewController {
 			containerView.alpha = 0.0
 		}
 		
-		updateLayout(duration: nil) {
+		layoutView(duration: nil) {
 			self.isPresenting = false
 			self.delegate?.modalController(self, didPresent: self.contentViewController)
 			NotificationCenter.default.post(name: NKModalController.didPresent, object: self, userInfo: nil)
@@ -315,9 +313,15 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
+		contentSize = contentViewController.preferredContentSize
+		layoutView(duration: duration, completion: completion)
+	}
+	
+	private func layoutView(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
 		guard contentViewController != nil else { return }
-		containerView.layer.cornerRadius = delegate?.cornerRadius(modalController: self) ?? Self.cornerRadius
-		containerView.clipsToBounds = containerView.layer.cornerRadius > 0
+		
+		let cornerRadius = delegate?.cornerRadius(modalController: self) ?? Self.cornerRadius
+		containerView.clipsToBounds = cornerRadius > 0
 		
 		let color = delegate?.backgroundColor(modalController: self) ?? Self.backgroundColor
 		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? Self.animationDuration
@@ -327,6 +331,7 @@ public class NKModalController: NKModalContainerViewController {
 			self.containerView.transform = .identity
 			self.containerView.frame = self.presentFrame()
 			self.containerView.alpha = 1.0
+			self.containerView.layer.cornerRadius = cornerRadius
 			self.anchorCapturedView?.alpha = 0.0
 		}) { (finished) in
 			self.removeCapturedView(&self.anchorCapturedView)
@@ -343,6 +348,9 @@ public class NKModalController: NKModalContainerViewController {
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
 		guard !isDismissing else { return }
 		isDismissing = true
+		
+		NotificationCenter.default.removeObserver(self)
+		removeGestures()
 		
 		delegate?.modalController(self, willDismiss: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
@@ -361,20 +369,27 @@ public class NKModalController: NKModalContainerViewController {
 		
 		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
 			self.view.backgroundColor = .clear
-			if targetProperties.scale != 1.0 {
-				self.containerView.alpha = 0.0
+			
+			if self.lastPosition != nil {
+				self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
+				self.containerView.layer.cornerRadius = 0.0
 			}
-			if self.animatedView != nil {
-				self.contentViewController.view.alpha = 0.0
+			else {
+				if targetProperties.scale != 1.0 {
+					self.containerView.alpha = 0.0
+				}
+				if self.animatedView != nil {
+					self.contentViewController.view.alpha = 0.0
+				}
 			}
 			
 			self.containerView.frame = targetProperties.frame
 			self.containerView.transform = transform
+			self.contentViewController.view.frame = self.containerView.bounds
 			self.anchorCapturedView?.alpha = 1.0
 		}) { (finished) in
-			self.animatedView?.alpha = self.lastAnimatedViewAlpha
-			
 			UIView.animate(withDuration: duration == 0 ? 0.0 : 0.1, animations: {
+				self.animatedView?.alpha = self.lastAnimatedViewAlpha
 				self.anchorCapturedView?.alpha = 0.0
 			}) { (finished) in
 				self.removeCapturedView(&self.anchorCapturedView)
@@ -443,11 +458,25 @@ public class NKModalController: NKModalContainerViewController {
 		imageView = nil
 	}
 	
+	private func removeGestures() {
+		if tapGesture != nil {
+			view.removeGestureRecognizer(tapGesture!)
+		}
+		if panGesture != nil {
+			view.removeGestureRecognizer(panGesture!)
+		}
+		
+		tapGesture?.delegate = nil
+		panGesture?.delegate = nil
+	}
+	
+	// MARK: -
+	
 	private var presentPosition: NKModalPresentPosition {
 		return delegate?.presentPosition(modalController: self) ?? .center
 	}
 	
-	func startFrame() -> (frame: CGRect, scale: CGFloat) {
+	func initFrame() -> (frame: CGRect, scale: CGFloat) {
 		if let lastContainer = lastPosition?.container {
 			return (lastContainer.convert(contentViewController.view.frame, to: view), 1.0)
 		}
@@ -481,9 +510,13 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	func presentFrame() -> CGRect {
+		if contentSize == nil {
+			contentSize = contentViewController.preferredContentSize
+		}
+		
+		guard var contentSize = contentSize else { return UIScreen.main.bounds }
 		var viewSize = view.bounds.size
 		viewSize.height -= keyboardHeight
-		var contentSize = contentViewController.preferredContentSize
 		
 		var origin: CGPoint = .zero
 		switch presentPosition {
@@ -636,7 +669,7 @@ public class NKModalController: NKModalContainerViewController {
 		guard keyboardHeight != endFrame.size.height else { return }
 		
 		keyboardHeight = endFrame.size.height
-		updateLayout(duration: 0.5)
+		layoutView(duration: 0.5)
 	}
 	
 	@objc func keyboardWillHide(_ notification: Notification) {
@@ -645,11 +678,12 @@ public class NKModalController: NKModalContainerViewController {
 		guard keyboardHeight != 0.0 else { return }
 		
 		keyboardHeight = 0.0
-		updateLayout(duration: 0.5)
+		layoutView(duration: 0.5)
 	}
 	
 	deinit {
 		tapGesture?.delegate = nil
+		panGesture?.delegate = nil
 		NotificationCenter.default.removeObserver(self)
 	}
 	

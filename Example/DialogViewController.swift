@@ -15,18 +15,20 @@ class DialogViewController: UIViewController {
 	let textField = UITextField()
 	let showButton = UIButton()
 	let closeButton = UIButton()
+	var contentSize: CGSize = CGSize(width: 300, height: 300)
 	
 	override var preferredContentSize: CGSize {
 		get {
-			return CGSize(width: 300, height: 300)
+			return contentSize
 		}
 		set {
 			super.preferredContentSize = newValue
 		}
 	}
 	
-	init() {
+	init(contentSize: CGSize) {
 		super.init(nibName: nil, bundle: nil)
+		self.contentSize = contentSize
 	}
 	
 	required init?(coder: NSCoder) {
@@ -101,7 +103,7 @@ class DialogViewController: UIViewController {
 			dismiss(animated: true, completion: nil)
 		}
 		else {
-			NKModalPresenter.shared.present(viewController: DialogViewController(), animatedFrom: button)
+			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))), animatedFrom: button)
 		}
 	}
 	
@@ -120,6 +122,10 @@ class DialogViewController: UIViewController {
 	
 	override var prefersStatusBarHidden: Bool {
 		return true
+	}
+	
+	override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
+		return .slide
 	}
 	
 	override var shouldAutorotate: Bool {
@@ -156,15 +162,19 @@ extension DialogViewController: NKModalControllerDelegate {
 	}
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool {
-		return false
+		return true
 	}
 	
 	func shouldDragToDismiss(modalController: NKModalController) -> Bool {
-		return false
+		return true
 	}
 	
 	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool {
 		return true
+	}
+	
+	func animationDuration(modalController: NKModalController) -> TimeInterval {
+		return 5
 	}
 	
 }
