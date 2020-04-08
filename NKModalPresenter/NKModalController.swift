@@ -200,10 +200,11 @@ public class NKModalController: NKModalContainerViewController {
 	
 	public fileprivate(set) var isPresenting = false
 	public fileprivate(set) var isDismissing = false
-	public var animatedView: UIView?
-	public var lastAnimatedViewAlpha: CGFloat = 1.0
+	
 	public var delegate: NKModalControllerDelegate?
-	public var enableDragDownToDismiss = false
+	public var tapOutsideToDismiss = false
+	public var dragToDismiss = false
+	public var avoidKeyboard = false
 	
 	public fileprivate(set) var contentView: UIView!
 	
@@ -221,6 +222,8 @@ public class NKModalController: NKModalContainerViewController {
 	var contentCapturedView: UIImageView?
 	var keyboardHeight: CGFloat = 0
 	var contentSize: CGSize?
+	var animatedView: UIView?
+	var lastAnimatedViewAlpha: CGFloat = 1.0
 	
 	var tapGesture: UITapGestureRecognizer?
 	var panGesture: UIPanGestureRecognizer?
@@ -352,7 +355,7 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
-		contentSize = contentViewController.preferredContentSize
+		contentSize = getContentSize()
 		layoutView(duration: duration, completion: completion)
 	}
 	
@@ -481,9 +484,16 @@ public class NKModalController: NKModalContainerViewController {
 	
 	// MARK: -
 	
-	func registerKeyboardNotifications() {
+	private func registerKeyboardNotifications() {
 	    NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
 	    NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+	}
+	
+	private func getContentSize() -> CGSize {
+		var result = contentViewController.preferredContentSize
+		result.width = max(1, result.width)
+		result.height = max(1, result.height)
+		return result
 	}
 	
 	private func capture(_ view: UIView) -> UIImageView {
@@ -570,7 +580,7 @@ public class NKModalController: NKModalContainerViewController {
 	
 	func presentFrame() -> CGRect {
 		if contentSize == nil {
-			contentSize = contentViewController.preferredContentSize
+			contentSize = getContentSize()
 		}
 		
 		guard var contentSize = contentSize else { return UIScreen.main.bounds }
@@ -648,7 +658,7 @@ public class NKModalController: NKModalContainerViewController {
 	fileprivate var dismissAnimation: NKModalDismissAnimation?
 	
 	@objc func onPan(_ gesture: UIPanGestureRecognizer) {
-		let enablePanGesture = delegate?.shouldDragToDismiss(modalController: self) ?? false
+		let enablePanGesture = delegate?.shouldDragToDismiss(modalController: self) ?? dragToDismiss
 		guard enablePanGesture else { return }
 		
 		let state = gesture.state
@@ -719,7 +729,7 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	@objc func keyboardWillShow(_ notification: Notification) {
-		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? false
+		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? self.avoidKeyboard
 		guard avoidKeyboard else { return }
 		
 		guard let userInfo = notification.userInfo as? [String : AnyObject] else { return }
@@ -732,7 +742,7 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	@objc func keyboardWillHide(_ notification: Notification) {
-		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? false
+		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? self.avoidKeyboard
 		guard avoidKeyboard else { return }
 		guard keyboardHeight != 0.0 else { return }
 		
@@ -752,7 +762,7 @@ extension NKModalController: UIGestureRecognizerDelegate {
 	
 	public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
 	    if touch.view == view {
-			let enableTapOutsideToDismiss = delegate?.shouldTapOutsideToDismiss(modalController: self) ?? false
+			let enableTapOutsideToDismiss = delegate?.shouldTapOutsideToDismiss(modalController: self) ?? tapOutsideToDismiss
 			if enableTapOutsideToDismiss {
 				dismiss(animated: true)
 				return false

@@ -120,6 +120,10 @@ class DialogViewController: UIViewController {
 		return .slide
 	}
 	
+	override var preferredStatusBarStyle: UIStatusBarStyle {
+		return .lightContent
+	}
+	
 	override var shouldAutorotate: Bool {
 		return true
 	}
