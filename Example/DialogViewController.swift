@@ -149,6 +149,10 @@ extension DialogViewController: UITextFieldDelegate {
 
 extension DialogViewController: NKModalControllerDelegate {
 	
+	func modalController(_ controller: NKModalController, willDismiss viewController: UIViewController) {
+		_ = view.endEditing(true)
+	}
+	
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition {
 		return .center
 	}
