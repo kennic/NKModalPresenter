@@ -36,6 +36,13 @@ public enum NKModalDismissAnimation: Equatable {
 	case toCenter(scale: CGFloat)
 }
 
+public enum NKModalEasingAnimation: Equatable {
+	case easeIn
+	case easeOut
+	case easeInOut
+	case linear
+}
+
 public protocol NKModalControllerDelegate {
 	
 	func modalController(_ controller: NKModalController, willPresent viewController: UIViewController)
@@ -52,6 +59,7 @@ public protocol NKModalControllerDelegate {
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition
 	func presentAnimation(modalController: NKModalController) -> NKModalPresentAnimation
 	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation
+	func easingAnimation(modalController: NKModalController) -> NKModalEasingAnimation
 	func animationDuration(modalController: NKModalController) -> TimeInterval
 	func backgroundColor(modalController: NKModalController) -> UIColor
 	func cornerRadius(modalController: NKModalController) -> CGFloat
@@ -74,6 +82,7 @@ public extension NKModalControllerDelegate {
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition { return .center }
 	func presentAnimation(modalController: NKModalController) -> NKModalPresentAnimation { return .auto }
 	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation { return .auto }
+	func easingAnimation(modalController: NKModalController) -> NKModalEasingAnimation { return .easeInOut }
 	func animationDuration(modalController: NKModalController) -> TimeInterval { return NKModalController.animationDuration }
 	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
 	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
@@ -154,6 +163,23 @@ extension NKModalPresentPosition {
 	
 }
 
+extension NKModalEasingAnimation {
+	
+	func toAnimationOption() -> UIView.AnimationOptions {
+		switch self {
+		case .easeIn:
+			return .curveEaseIn
+		case .easeOut:
+			return .curveEaseOut
+		case .easeInOut:
+			return .curveEaseInOut
+		case .linear:
+			return .curveLinear
+		}
+	}
+	
+}
+
 extension UIWindow {
 	static var keyWindow: UIWindow? {
 		if #available(iOS 13, *) {
@@ -184,6 +210,7 @@ public class NKModalController: NKModalContainerViewController {
 	// Default values
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
 	public static var animationDuration: TimeInterval = 0.45
+	public static var easingAnimation: NKModalEasingAnimation = .easeInOut
 	public static var cornerRadius: CGFloat = 8.0
 	
 	let containerView = UIView()
@@ -336,8 +363,9 @@ public class NKModalController: NKModalContainerViewController {
 		containerView.clipsToBounds = cornerRadius > 0
 		
 		let color = delegate?.backgroundColor(modalController: self) ?? Self.backgroundColor
+		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
 		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? Self.animationDuration
-		UIView.animate(withDuration: durationValue, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
+		UIView.animate(withDuration: durationValue, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: easing.toAnimationOption(), animations: {
 			self.view.backgroundColor = color
 			self.setNeedsStatusBarAppearanceUpdate()
 			
@@ -373,11 +401,11 @@ public class NKModalController: NKModalContainerViewController {
 		delegate?.modalController(self, willDismiss: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
 		
-		let duration = delegate?.animationDuration(modalController: self) ?? Self.animationDuration
+		let duration = animated ? delegate?.animationDuration(modalController: self) ?? Self.animationDuration : 0.0
 		let targetProperties = dismissFrame()
 		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
 		
-		if let anchorView = animatedView {
+		if let anchorView = animatedView, duration > 0.0 {
 			contentCapturedView = capture(contentView)
 			contentCapturedView?.alpha = 1.0
 			contentCapturedView?.contentMode = .scaleToFill
@@ -391,7 +419,9 @@ public class NKModalController: NKModalContainerViewController {
 			anchorView.alpha = 0.0
 		}
 		
-		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
+		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
+		
+		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: easing.toAnimationOption(), animations: {
 			self.view.backgroundColor = .clear
 			
 			if self.lastPosition != nil {
@@ -423,7 +453,7 @@ public class NKModalController: NKModalContainerViewController {
 				self.contentView.setNeedsLayout()
 			}
 			
-			UIView.animate(withDuration: duration == 0 ? 0.0 : 0.1, animations: {
+			UIView.animate(withDuration: min(0.1, duration), animations: {
 				self.anchorCapturedView?.alpha = 0.0
 			}) { (finished) in
 				self.removeCapturedView(&self.anchorCapturedView)
@@ -440,9 +470,10 @@ public class NKModalController: NKModalContainerViewController {
 					self.window = nil
 					
 					self.delegate?.modalController(self, didDismiss: self.contentViewController)
+					NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
+					
 					self.contentView = nil
 					self.contentViewController = nil
-					NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
 				}
 			}
 		}
