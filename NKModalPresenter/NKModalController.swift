@@ -491,6 +491,10 @@ public class NKModalController: NKModalContainerViewController {
 	
 	private func getContentSize() -> CGSize {
 		var result = contentViewController.preferredContentSize
+		if result == .zero {
+			return view.bounds.size
+		}
+		
 		result.width = max(1, result.width)
 		result.height = max(1, result.height)
 		return result
