@@ -9,8 +9,6 @@
 import UIKit
 
 class DialogViewController: UIViewController {
-	let backgroundImageView = UIImageView(image: UIImage(named: "background"))
-	let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .extraLight))
 	let titleLabel = UILabel()
 	let textField = UITextField()
 	let showButton = UIButton()
@@ -38,8 +36,7 @@ class DialogViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 		
-		view.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-		backgroundImageView.contentMode = .scaleAspectFill
+		view.backgroundColor = .white
 		
 		titleLabel.font = .systemFont(ofSize: 16, weight: .bold)
 		titleLabel.text = "Test Dialog"
@@ -70,8 +67,6 @@ class DialogViewController: UIViewController {
 		closeButton.showsTouchWhenHighlighted = true
 		closeButton.addTarget(self, action: #selector(onButtonSelected), for: .touchUpInside)
 		
-		view.addSubview(backgroundImageView)
-		view.addSubview(blurView)
 		view.addSubview(titleLabel)
 		view.addSubview(textField)
 		view.addSubview(showButton)
@@ -80,9 +75,6 @@ class DialogViewController: UIViewController {
 	
 	override func viewDidLayoutSubviews() {
 		super.viewDidLayoutSubviews()
-		
-		backgroundImageView.frame = view.bounds
-		blurView.frame = view.bounds
 		
 		let viewSize = view.bounds.size
 		let buttonSize = CGSize(width: 120, height: 40)
@@ -174,7 +166,7 @@ extension DialogViewController: NKModalControllerDelegate {
 	}
 	
 	func animationDuration(modalController: NKModalController) -> TimeInterval {
-		return 5
+		return 0.5
 	}
 	
 }

@@ -179,6 +179,8 @@ public class NKModalController: NKModalContainerViewController {
 	public var delegate: NKModalControllerDelegate?
 	public var enableDragDownToDismiss = false
 	
+	public fileprivate(set) var contentView: UIView!
+	
 	// Default values
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
 	public static var animationDuration: TimeInterval = 0.45
@@ -189,6 +191,7 @@ public class NKModalController: NKModalContainerViewController {
 	var lastWindow: UIWindow?
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
+	var contentCapturedView: UIImageView?
 	var keyboardHeight: CGFloat = 0
 	var contentSize: CGSize?
 	
@@ -203,6 +206,7 @@ public class NKModalController: NKModalContainerViewController {
 		modalPresentationCapturesStatusBarAppearance = true
 		
 		contentViewController = viewController
+		contentView = viewController.view
 		
 		delegate = viewController as? NKModalControllerDelegate
 		if delegate == nil, let navigationController = viewController as? UINavigationController {
@@ -251,11 +255,11 @@ public class NKModalController: NKModalContainerViewController {
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
-		animatedView = view
-		if let container = contentViewController.view.superview {
-			lastPosition = (container, contentViewController.view.frame)
+		animatedView = view?.window != nil ? view : nil
+		if let container = contentView.superview {
+			lastPosition = (container, contentView.frame)
 		}
-		lastAnimatedViewAlpha = view?.alpha ?? contentViewController.view.alpha
+		lastAnimatedViewAlpha = view?.alpha ?? contentView.alpha
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
 		if presentingViewController == nil {
@@ -289,16 +293,24 @@ public class NKModalController: NKModalContainerViewController {
 	func showView() {
 		let startProperties = initFrame()
 		
-		containerView.addSubview(contentViewController.view)
+		containerView.addSubview(contentView)
 		containerView.frame = startProperties.frame
-		contentViewController.view.frame = containerView.bounds
 		
-		if let startView = animatedView, startView.window != nil {
-			anchorCapturedView = capture(startView)
+		if let anchorView = animatedView {
+			contentView.frame = presentFrame()
+			contentCapturedView = capture(contentView)
+			contentCapturedView?.alpha = 0.0
+			contentCapturedView?.contentMode = .scaleToFill
+			containerView.addSubview(contentCapturedView!)
+			contentView.alpha = 0.0
+			
+			anchorCapturedView = capture(anchorView)
 			anchorCapturedView?.alpha = 1.0
 			containerView.addSubview(anchorCapturedView!)
-			startView.alpha = 0.0
+			anchorView.alpha = 0.0
 		}
+		
+		contentView.frame = containerView.bounds
 		
 		if startProperties.scale != 1.0 {
 			containerView.transform = CGAffineTransform(scaleX: startProperties.scale, y: startProperties.scale)
@@ -328,18 +340,24 @@ public class NKModalController: NKModalContainerViewController {
 		UIView.animate(withDuration: durationValue, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
 			self.view.backgroundColor = color
 			self.setNeedsStatusBarAppearanceUpdate()
+			
 			self.containerView.transform = .identity
 			self.containerView.frame = self.presentFrame()
 			self.containerView.alpha = 1.0
 			self.containerView.layer.cornerRadius = cornerRadius
-			self.anchorCapturedView?.alpha = 0.0
-		}) { (finished) in
-			self.removeCapturedView(&self.anchorCapturedView)
-			self.view.setNeedsLayout()
-			if self.contentViewController != nil {
-				self.contentViewController.view.frame = self.containerView.bounds
-			}
 			
+			self.anchorCapturedView?.alpha = 0.0
+			self.contentCapturedView?.alpha = 1.0
+			
+			self.contentView.frame = self.containerView.bounds
+		}) { (finished) in
+			self.view.setNeedsLayout()
+			if self.contentView != nil {
+				self.contentView.frame = self.containerView.bounds
+				self.contentView.alpha = 1.0
+			}
+			self.removeCapturedView(&self.anchorCapturedView)
+			self.removeCapturedView(&self.contentCapturedView)
 			self.setNeedsStatusBarAppearanceUpdate()
 			completion?()
 		}
@@ -359,19 +377,25 @@ public class NKModalController: NKModalContainerViewController {
 		let targetProperties = dismissFrame()
 		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
 		
-		if let startView = animatedView, startView.window != nil {
-			startView.alpha = 1.0
-			anchorCapturedView = capture(startView)
+		if let anchorView = animatedView {
+			contentCapturedView = capture(contentView)
+			contentCapturedView?.alpha = 1.0
+			contentCapturedView?.contentMode = .scaleToFill
+			containerView.addSubview(contentCapturedView!)
+			contentView.alpha = 0.0
+			
+			anchorView.alpha = 1.0
+			anchorCapturedView = capture(anchorView)
 			anchorCapturedView?.alpha = 0.0
 			containerView.addSubview(anchorCapturedView!)
-			startView.alpha = 0.0
+			anchorView.alpha = 0.0
 		}
 		
 		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: .curveEaseInOut, animations: {
 			self.view.backgroundColor = .clear
 			
 			if self.lastPosition != nil {
-				self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
+				self.contentView.alpha = self.lastAnimatedViewAlpha
 				self.containerView.layer.cornerRadius = 0.0
 			}
 			else {
@@ -379,27 +403,30 @@ public class NKModalController: NKModalContainerViewController {
 					self.containerView.alpha = 0.0
 				}
 				if self.animatedView != nil {
-					self.contentViewController.view.alpha = 0.0
+					self.contentView.alpha = 0.0
 				}
 			}
 			
 			self.containerView.frame = targetProperties.frame
 			self.containerView.transform = transform
-			self.contentViewController.view.frame = self.containerView.bounds
+			self.contentView.frame = self.containerView.bounds
 			self.anchorCapturedView?.alpha = 1.0
+			self.contentCapturedView?.alpha = 0.0
 		}) { (finished) in
+			self.animatedView?.alpha = self.lastAnimatedViewAlpha
+			self.removeCapturedView(&self.contentCapturedView)
+			
+			if let lastPosition = self.lastPosition {
+				lastPosition.container.addSubview(self.contentView)
+				self.contentView.alpha = self.lastAnimatedViewAlpha
+				self.contentView.frame = lastPosition.frame
+				self.contentView.setNeedsLayout()
+			}
+			
 			UIView.animate(withDuration: duration == 0 ? 0.0 : 0.1, animations: {
-				self.animatedView?.alpha = self.lastAnimatedViewAlpha
 				self.anchorCapturedView?.alpha = 0.0
 			}) { (finished) in
 				self.removeCapturedView(&self.anchorCapturedView)
-				
-				if let lastPosition = self.lastPosition {
-					lastPosition.container.addSubview(self.contentViewController.view)
-					self.contentViewController.view.alpha = self.lastAnimatedViewAlpha
-					self.contentViewController.view.frame = lastPosition.frame
-					self.contentViewController.view.setNeedsLayout()
-				}
 				
 				super.dismiss(animated: false) {
 					self.setNeedsStatusBarAppearanceUpdate()
@@ -413,6 +440,7 @@ public class NKModalController: NKModalContainerViewController {
 					self.window = nil
 					
 					self.delegate?.modalController(self, didDismiss: self.contentViewController)
+					self.contentView = nil
 					self.contentViewController = nil
 					NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
 				}
@@ -478,10 +506,10 @@ public class NKModalController: NKModalContainerViewController {
 	
 	func initFrame() -> (frame: CGRect, scale: CGFloat) {
 		if let lastContainer = lastPosition?.container {
-			return (lastContainer.convert(contentViewController.view.frame, to: view), 1.0)
+			return (lastContainer.convert(contentView.frame, to: view), 1.0)
 		}
 		
-		if let animatedView = animatedView ?? contentViewController.view.superview {
+		if let animatedView = animatedView ?? contentView.superview {
 			return (frame: animatedView.convert(animatedView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
 		}
 		

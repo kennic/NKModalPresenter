@@ -21,6 +21,7 @@ extension Array where Element: Equatable {
 public class NKModalPresenter {
 	public static let shared = NKModalPresenter()
 	public private(set) var activeModalControllers: [NKModalController] = []
+	
 	private var listenOnDismissEvent = true
 
 	private init() {}
@@ -92,6 +93,15 @@ extension UIViewController {
 	
 	public var modalController: NKModalController? {
 		return NKModalPresenter.shared.modalController(containing: self)
+	}
+	
+	public func modalDismiss(animated: Bool, completion: (() -> Void)? = nil) {
+		if let modal = modalController {
+			modal.dismiss(animated: animated, completion: completion)
+		}
+		else {
+			dismiss(animated: animated, completion: completion)
+		}
 	}
 	
 }
