@@ -22,6 +22,10 @@ public class NKModalPresenter {
 	public static let shared = NKModalPresenter()
 	public private(set) var activeModalControllers: [NKModalController] = []
 	
+	public var topModalController: NKModalController? {
+		return activeModalControllers.last
+	}
+	
 	private var listenOnDismissEvent = true
 
 	private init() {}
