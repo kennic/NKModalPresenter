@@ -200,6 +200,7 @@ public class NKModalController: NKModalContainerViewController {
 	
 	public fileprivate(set) var isPresenting = false
 	public fileprivate(set) var isDismissing = false
+	public fileprivate(set) var isAnimating = false
 	
 	public var delegate: NKModalControllerDelegate?
 	public var tapOutsideToDismiss = false
@@ -224,6 +225,7 @@ public class NKModalController: NKModalContainerViewController {
 	var keyboardHeight: CGFloat = 0
 	var contentSize: CGSize?
 	var lastAnchorViewAlpha: CGFloat = 1.0
+	var lastViewSize: CGSize?
 	
 	var tapGesture: UITapGestureRecognizer?
 	var panGesture: UIPanGestureRecognizer?
@@ -274,6 +276,14 @@ public class NKModalController: NKModalContainerViewController {
 	public override func viewDidDisappear(_ animated: Bool) {
 		super.viewDidDisappear(animated)
 		NotificationCenter.default.removeObserver(self)
+	}
+	
+	public override func viewDidLayoutSubviews() {
+		super.viewDidLayoutSubviews()
+		guard view.bounds.size != lastViewSize else { return }
+		lastViewSize = view.bounds.size
+		guard !isAnimating, !isPresenting, !isDismissing else { return }
+		layoutView(duration: 0.0, completion: nil)
 	}
 	
 	// MARK: -
@@ -368,7 +378,9 @@ public class NKModalController: NKModalContainerViewController {
 		let color = delegate?.backgroundColor(modalController: self) ?? Self.backgroundColor
 		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
 		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? Self.animationDuration
-		UIView.animate(withDuration: durationValue, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: easing.toAnimationOption(), animations: {
+		
+		isAnimating = true
+		animationBlock(duration: durationValue, options: easing.toAnimationOption(), animations: {
 			self.view.backgroundColor = color
 			self.setNeedsStatusBarAppearanceUpdate()
 			
@@ -380,16 +392,15 @@ public class NKModalController: NKModalContainerViewController {
 			self.anchorCapturedView?.alpha = 0.0
 			self.contentCapturedView?.alpha = 1.0
 			
-			self.contentView.frame = self.containerView.bounds
+			self.contentView?.frame = self.containerView.bounds
 		}) { (finished) in
 			self.view.setNeedsLayout()
-			if self.contentView != nil {
-				self.contentView.frame = self.containerView.bounds
-				self.contentView.alpha = 1.0
-			}
+			self.contentView?.frame = self.containerView.bounds
+			self.contentView?.alpha = 1.0
 			self.removeCapturedView(&self.anchorCapturedView)
 			self.removeCapturedView(&self.contentCapturedView)
 			self.setNeedsStatusBarAppearanceUpdate()
+			self.isAnimating = false
 			completion?()
 		}
 	}
@@ -397,6 +408,7 @@ public class NKModalController: NKModalContainerViewController {
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
 		guard !isDismissing else { return }
 		isDismissing = true
+		isAnimating = true
 		
 		NotificationCenter.default.removeObserver(self)
 		removeGestures()
@@ -423,8 +435,7 @@ public class NKModalController: NKModalContainerViewController {
 		}
 		
 		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
-		
-		UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: easing.toAnimationOption(), animations: {
+		animationBlock(duration: duration, options: easing.toAnimationOption(), animations: {
 			self.view.backgroundColor = .clear
 			
 			if self.lastPosition != nil {
@@ -456,14 +467,14 @@ public class NKModalController: NKModalContainerViewController {
 				self.contentView.setNeedsLayout()
 			}
 			
-			UIView.animate(withDuration: min(0.1, duration), animations: {
+			self.animationBlock(duration: min(0.1, duration), options: .curveEaseOut, animations: {
 				self.anchorCapturedView?.alpha = 0.0
 			}) { (finished) in
 				self.removeCapturedView(&self.anchorCapturedView)
 				
 				super.dismiss(animated: false) {
 					self.setNeedsStatusBarAppearanceUpdate()
-					
+					self.isAnimating = false
 					self.isDismissing = false
 					self.lastWindow?.makeKeyAndVisible()
 					
@@ -498,6 +509,16 @@ public class NKModalController: NKModalContainerViewController {
 		result.width = max(1, result.width)
 		result.height = max(1, result.height)
 		return result
+	}
+	
+	private func animationBlock(duration: TimeInterval, options: UIView.AnimationOptions, animations: @escaping (() -> Void), completion: ((Bool) -> Void)? = nil) {
+		if duration == 0 {
+			animations()
+			completion?(true)
+		}
+		else {
+			UIView.animate(withDuration: duration, delay: 0.0, usingSpringWithDamping: 1.0, initialSpringVelocity: 0.0, options: options, animations: animations, completion: completion)
+		}
 	}
 	
 	private func capture(_ view: UIView) -> UIImageView {
