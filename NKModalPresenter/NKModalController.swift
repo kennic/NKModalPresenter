@@ -225,6 +225,7 @@ public class NKModalController: NKModalContainerViewController {
 	var anchorCapturedView: UIImageView?
 	var contentCapturedView: UIImageView?
 	var transitionView: UIView?
+	var lastTransitionViewAlpha: CGFloat = 1.0
 	var keyboardHeight: CGFloat = 0
 	var contentSize: CGSize?
 	var lastAnchorViewAlpha: CGFloat = 1.0
@@ -359,8 +360,9 @@ public class NKModalController: NKModalContainerViewController {
 			anchorCapturedView?.alpha = 1.0
 			
 			if transitionView != nil {
-				anchorCapturedView?.frame = view.convert(anchorView.frame, from: anchorView.superview)
-				contentCapturedView?.frame = view.convert(anchorView.frame, from: anchorView.superview)
+				let frame = view.convert(anchorView.frame, from: anchorView.superview)
+				anchorCapturedView?.frame = frame
+				contentCapturedView?.frame = frame
 				view.addSubview(contentCapturedView!)
 				view.addSubview(anchorCapturedView!)
 			}
@@ -405,6 +407,7 @@ public class NKModalController: NKModalContainerViewController {
 		
 		var targetFrame: CGRect? = nil
 		if transitionView != nil {
+			lastTransitionViewAlpha = transitionView!.alpha
 			transitionView!.alpha = 0.0
 			targetFrame = view.convert(transitionView!.frame, from: transitionView!.superview)
 		}
@@ -420,9 +423,9 @@ public class NKModalController: NKModalContainerViewController {
 			
 			self.anchorCapturedView?.alpha = 0.0
 			self.contentCapturedView?.alpha = 1.0
+			
 			if let frame = targetFrame {
 				self.contentView?.alpha = 1.0
-				
 				self.contentCapturedView?.frame = frame
 				self.anchorCapturedView?.frame = frame
 			}
@@ -432,7 +435,7 @@ public class NKModalController: NKModalContainerViewController {
 			self.view.setNeedsLayout()
 			self.contentView?.frame = self.containerView.bounds
 			self.contentView?.alpha = 1.0
-			self.transitionView?.alpha = 1.0
+			self.transitionView?.alpha = self.lastTransitionViewAlpha
 			self.removeCapturedView(&self.anchorCapturedView)
 			self.removeCapturedView(&self.contentCapturedView)
 			self.setNeedsStatusBarAppearanceUpdate()
@@ -462,19 +465,34 @@ public class NKModalController: NKModalContainerViewController {
 		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
 		
 		if let anchorView = anchorView, duration > 0.0 {
-			let captureView: UIView = delegate?.transitionView(modalController: self) ?? contentView
-			contentCapturedView = capture(captureView)
+			transitionView = delegate?.transitionView(modalController: self)
+			contentCapturedView = capture(transitionView ?? contentView)
 			contentCapturedView?.alpha = 1.0
 			contentCapturedView?.contentMode = .scaleToFill
-			contentCapturedView?.frame = captureView.frame
-			containerView.addSubview(contentCapturedView!)
-			contentView.alpha = 0.0
 			
 			anchorView.alpha = 1.0
 			anchorCapturedView = capture(anchorView)
 			anchorCapturedView?.alpha = 0.0
-			containerView.addSubview(anchorCapturedView!)
 			anchorView.alpha = 0.0
+			
+			if transitionView != nil {
+				let frame = view.convert(transitionView!.frame, from: transitionView?.superview)
+				contentCapturedView?.frame = frame
+				anchorCapturedView?.frame = frame
+				view.addSubview(contentCapturedView!)
+				view.addSubview(anchorCapturedView!)
+			}
+			else {
+				contentView.alpha = 0.0
+				containerView.addSubview(contentCapturedView!)
+				containerView.addSubview(anchorCapturedView!)
+			}
+		}
+		
+		var targetFrame: CGRect? = nil
+		if let anchorView = anchorView, transitionView != nil {
+			transitionView!.alpha = 0.0
+			targetFrame = view.convert(anchorView.frame, from: anchorView.superview)
 		}
 		
 		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
@@ -494,11 +512,19 @@ public class NKModalController: NKModalContainerViewController {
 				}
 			}
 			
-			self.containerView.frame = targetProperties.frame
-			self.containerView.transform = transform
-			self.contentView.frame = self.containerView.bounds
 			self.anchorCapturedView?.alpha = 1.0
 			self.contentCapturedView?.alpha = 0.0
+			
+			if let frame = targetFrame {
+//				self.contentView?.alpha = 0.0
+				self.contentCapturedView?.frame = frame
+				self.anchorCapturedView?.frame = frame
+			}
+			else {
+				self.containerView.frame = targetProperties.frame
+				self.containerView.transform = transform
+				self.contentView.frame = self.containerView.bounds
+			}
 		}) { (finished) in
 			self.anchorView?.alpha = self.lastAnchorViewAlpha
 			self.removeCapturedView(&self.contentCapturedView)

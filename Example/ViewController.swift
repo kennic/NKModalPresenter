@@ -34,6 +34,7 @@ class ViewController: UIViewController {
 		super.viewDidLoad()
 		
 		backgroundImageView.contentMode = .scaleAspectFill
+		
 		view.addSubview(backgroundImageView)
 		view.addSubview(testViewController.view)
 		
@@ -68,7 +69,9 @@ class ViewController: UIViewController {
 	
 	@objc func onButtonSelected(_ button: UIButton) {
 		if button == button1 {
-			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))), animatedFrom: button)
+			let dialogViewController = DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500)))
+			dialogViewController.allowTransitionView = true
+			NKModalPresenter.shared.present(viewController: dialogViewController, animatedFrom: button)
 		}
 		else if button == button2 {
 			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))))

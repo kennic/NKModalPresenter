@@ -14,6 +14,7 @@ class DialogViewController: UIViewController {
 	let showButton = UIButton()
 	let closeButton = UIButton()
 	var contentSize: CGSize = CGSize(width: 300, height: 300)
+	var allowTransitionView = false
 	
 	override var preferredContentSize: CGSize {
 		get {
@@ -43,6 +44,7 @@ class DialogViewController: UIViewController {
 		titleLabel.textColor = .black
 		titleLabel.textAlignment = .center
 		
+		textField.textColor = .black
 		textField.font = .systemFont(ofSize: 14, weight: .regular)
 		textField.placeholder = "Tap here to show the keyboard"
 		textField.returnKeyType = .done
@@ -174,11 +176,11 @@ extension DialogViewController: NKModalControllerDelegate {
 	}
 	
 	func animationDuration(modalController: NKModalController) -> TimeInterval {
-		return 5
+		return 0.5
 	}
 	
 	func transitionView(modalController: NKModalController) -> UIView? {
-		return nil
+		return allowTransitionView ? (modalController.isPresenting ? showButton : closeButton) : nil
 	}
 	
 }
