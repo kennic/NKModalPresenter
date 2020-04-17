@@ -174,7 +174,11 @@ extension DialogViewController: NKModalControllerDelegate {
 	}
 	
 	func animationDuration(modalController: NKModalController) -> TimeInterval {
-		return 0.5
+		return 5
+	}
+	
+	func transitionView(modalController: NKModalController) -> UIView? {
+		return nil
 	}
 	
 }

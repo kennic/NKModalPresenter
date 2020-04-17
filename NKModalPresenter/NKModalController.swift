@@ -63,6 +63,7 @@ public protocol NKModalControllerDelegate {
 	func animationDuration(modalController: NKModalController) -> TimeInterval
 	func backgroundColor(modalController: NKModalController) -> UIColor
 	func cornerRadius(modalController: NKModalController) -> CGFloat
+	func transitionView(modalController: NKModalController) -> UIView?
 	
 }
 
@@ -86,6 +87,7 @@ public extension NKModalControllerDelegate {
 	func animationDuration(modalController: NKModalController) -> TimeInterval { return NKModalController.animationDuration }
 	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
 	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
+	func transitionView(modalController: NKModalController) -> UIView? { return nil }
 	
 }
 
@@ -222,6 +224,7 @@ public class NKModalController: NKModalContainerViewController {
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
 	var contentCapturedView: UIImageView?
+	var transitionView: UIView?
 	var keyboardHeight: CGFloat = 0
 	var contentSize: CGSize?
 	var lastAnchorViewAlpha: CGFloat = 1.0
@@ -337,16 +340,35 @@ public class NKModalController: NKModalContainerViewController {
 		containerView.frame = startProperties.frame
 		
 		if let anchorView = anchorView {
-			contentView.frame = presentFrame()
-			contentCapturedView = capture(contentView)
+			transitionView = delegate?.transitionView(modalController: self)
+			
+			let frame = presentFrame()
+			if transitionView != nil {
+				containerView.frame = frame
+			}
+			contentView.frame = frame
+			contentView.setNeedsLayout()
+			contentView.layoutIfNeeded()
+			
+			contentCapturedView = capture(transitionView ?? contentView)
 			contentCapturedView?.alpha = 0.0
 			contentCapturedView?.contentMode = .scaleToFill
-			containerView.addSubview(contentCapturedView!)
 			contentView.alpha = 0.0
 			
 			anchorCapturedView = capture(anchorView)
 			anchorCapturedView?.alpha = 1.0
-			containerView.addSubview(anchorCapturedView!)
+			
+			if transitionView != nil {
+				anchorCapturedView?.frame = view.convert(anchorView.frame, from: anchorView.superview)
+				contentCapturedView?.frame = view.convert(anchorView.frame, from: anchorView.superview)
+				view.addSubview(contentCapturedView!)
+				view.addSubview(anchorCapturedView!)
+			}
+			else {
+				containerView.addSubview(contentCapturedView!)
+				containerView.addSubview(anchorCapturedView!)
+			}
+			
 			anchorView.alpha = 0.0
 		}
 		
@@ -380,6 +402,13 @@ public class NKModalController: NKModalContainerViewController {
 		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? Self.animationDuration
 		
 		isAnimating = true
+		
+		var targetFrame: CGRect? = nil
+		if transitionView != nil {
+			transitionView!.alpha = 0.0
+			targetFrame = view.convert(transitionView!.frame, from: transitionView!.superview)
+		}
+		
 		animationBlock(duration: durationValue, options: easing.toAnimationOption(), animations: {
 			self.view.backgroundColor = color
 			self.setNeedsStatusBarAppearanceUpdate()
@@ -391,12 +420,19 @@ public class NKModalController: NKModalContainerViewController {
 			
 			self.anchorCapturedView?.alpha = 0.0
 			self.contentCapturedView?.alpha = 1.0
+			if let frame = targetFrame {
+				self.contentView?.alpha = 1.0
+				
+				self.contentCapturedView?.frame = frame
+				self.anchorCapturedView?.frame = frame
+			}
 			
 			self.contentView?.frame = self.containerView.bounds
 		}) { (finished) in
 			self.view.setNeedsLayout()
 			self.contentView?.frame = self.containerView.bounds
 			self.contentView?.alpha = 1.0
+			self.transitionView?.alpha = 1.0
 			self.removeCapturedView(&self.anchorCapturedView)
 			self.removeCapturedView(&self.contentCapturedView)
 			self.setNeedsStatusBarAppearanceUpdate()
@@ -406,6 +442,11 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	public override func dismiss(animated: Bool, completion: (() -> Void)? = nil) {
+		guard !isPresenting else {
+			print("[NKModalController] Can not dismiss a modal controller while it's presenting")
+			return
+		}
+		
 		guard !isDismissing else { return }
 		isDismissing = true
 		isAnimating = true
@@ -421,9 +462,11 @@ public class NKModalController: NKModalContainerViewController {
 		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
 		
 		if let anchorView = anchorView, duration > 0.0 {
-			contentCapturedView = capture(contentView)
+			let captureView: UIView = delegate?.transitionView(modalController: self) ?? contentView
+			contentCapturedView = capture(captureView)
 			contentCapturedView?.alpha = 1.0
 			contentCapturedView?.contentMode = .scaleToFill
+			contentCapturedView?.frame = captureView.frame
 			containerView.addSubview(contentCapturedView!)
 			contentView.alpha = 0.0
 			
