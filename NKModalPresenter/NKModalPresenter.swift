@@ -34,6 +34,10 @@ public class NKModalPresenter {
 	public func present(viewController: UIViewController, animatedFrom view: UIView? = nil) -> NKModalController {
 		let modalController = NKModalController(viewController: viewController)
 		modalController.present(animatedFrom: view)
+		
+//		let classType = type(of: viewController)
+//		viewController.swizzleInstanceMethod(classType, from: #selector(classType.dismiss(animated:completion:)), to: #selector(classType.dismissModal(animated:completion:)))
+		
 		NotificationCenter.default.addObserver(self, selector: #selector(onModalControllerDismissed), name: NKModalController.didDismiss, object: modalController)
 		activeModalControllers.append(modalController)
 		return modalController
@@ -92,7 +96,10 @@ extension UIViewController {
 		return NKModalPresenter.shared.modalController(containing: self)
 	}
 	
-	public func modalDismiss(animated: Bool, completion: (() -> Void)? = nil) {
+	@objc public func dismissModal(animated: Bool, completion: (() -> Void)? = nil) {
+//		let classType = type(of: self)
+//		swizzleInstanceMethod(classType, from: #selector(classType.dismissModal(animated:completion:)), to: #selector(classType.dismiss(animated:completion:)))
+		
 		if let modal = modalController {
 			modal.dismiss(animated: animated, completion: completion)
 		}
@@ -102,3 +109,38 @@ extension UIViewController {
 	}
 	
 }
+
+// Swizzle methods
+
+//extension UIViewController {
+//
+//	private func _swizzleMethod(_ class_: AnyClass, from selector1: Selector, to selector2: Selector, isClassMethod: Bool) {
+//		let c: AnyClass
+//		if isClassMethod {
+//			guard let c_ = object_getClass(class_) else { return }
+//			c = c_
+//		}
+//		else {
+//			c = class_
+//		}
+//
+//		guard let method1: Method = class_getInstanceMethod(c, selector1),
+//			let method2: Method = class_getInstanceMethod(c, selector2) else
+//		{
+//			return
+//		}
+//
+//		if class_addMethod(c, selector1, method_getImplementation(method2), method_getTypeEncoding(method2)) {
+//			class_replaceMethod(c, selector2, method_getImplementation(method1), method_getTypeEncoding(method1))
+//		}
+//		else {
+//			method_exchangeImplementations(method1, method2)
+//		}
+//	}
+//
+//	/// Instance-method swizzling.
+//	fileprivate func swizzleInstanceMethod(_ class_: AnyClass, from sel1: Selector, to sel2: Selector) {
+//		_swizzleMethod(class_, from: sel1, to: sel2, isClassMethod: false)
+//	}
+//	
+//}
