@@ -24,7 +24,7 @@ viewController.presentAsModal()
 viewController.presentAsModal(animatedFrom: view)
 
 // Dismissing
-viewController.modalDismiss(animated: true, completion: nil)
+viewController.dismissModal(animated: true, completion: nil)
 ```
 
 ## Examples
