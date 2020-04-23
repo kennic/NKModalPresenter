@@ -66,7 +66,7 @@ public class NKModalPresenter {
 	}
 	
 	public func modalController(containing view: UIView) -> NKModalController? {
-		return activeModalControllers.first(where: { $0.contentViewController.view == view}) //.filter { $0.contentViewController.view == view }.first
+		return activeModalControllers.first(where: { $0.contentViewController.view == view})
 	}
 	
 	@objc func onModalControllerDismissed(_ notification: Notification) {
@@ -82,6 +82,11 @@ public class NKModalPresenter {
 }
 
 extension UIViewController {
+	
+	@discardableResult
+	public func presentAsModal(animatedFrom view: UIView? = nil) -> NKModalController {
+		NKModalPresenter.shared.present(viewController: self, animatedFrom: view)
+	}
 	
 	public var modalController: NKModalController? {
 		return NKModalPresenter.shared.modalController(containing: self)

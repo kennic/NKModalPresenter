@@ -71,15 +71,14 @@ class ViewController: UIViewController {
 		if button == button1 {
 			let dialogViewController = DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500)))
 			dialogViewController.allowTransitionView = true
-			NKModalPresenter.shared.present(viewController: dialogViewController, animatedFrom: button)
+			dialogViewController.presentAsModal(animatedFrom: button)
 		}
 		else if button == button2 {
-			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))))
+			DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))).presentAsModal()
 		}
 		else if button == button3 {
-			NKModalPresenter.shared.present(viewController: testViewController)
+			testViewController.presentAsModal().dragToDismiss = true
 		}
 	}
 	
 }
-
