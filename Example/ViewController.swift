@@ -71,10 +71,10 @@ class ViewController: UIViewController {
 		if button == button1 {
 			let dialogViewController = DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500)))
 			dialogViewController.allowTransitionView = true
-			dialogViewController.presentAsModal(animatedFrom: button)
+			dialogViewController.presentAsModal(animate: .from(view: button))
 		}
 		else if button == button2 {
-			DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))).presentAsModal()
+			DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))).presentAsModal(animate: .fromCenter(scale: 1.2)).dismissAnimation = .toCenter(scale: 0.8)
 		}
 		else if button == button3 {
 			testViewController.presentAsModal().dragToDismiss = true

@@ -25,6 +25,7 @@ public enum NKModalPresentAnimation: Equatable {
 	case fromBottom
 	case fromRight
 	case fromCenter(scale: CGFloat)
+	case from(view: UIView)
 }
 
 public enum NKModalDismissAnimation: Equatable {
@@ -34,6 +35,7 @@ public enum NKModalDismissAnimation: Equatable {
 	case toBottom
 	case toRight
 	case toCenter(scale: CGFloat)
+	case to(view: UIView)
 }
 
 public enum NKModalEasingAnimation: Equatable {
@@ -165,6 +167,28 @@ extension NKModalPresentPosition {
 	
 }
 
+extension NKModalPresentAnimation {
+	
+	func toDismissAnimation(view: UIView) -> NKModalDismissAnimation {
+		switch self {
+			case .fromTop:
+				return .toTop
+			case .fromLeft:
+				return .toLeft
+			case .fromBottom:
+				return .toBottom
+			case .fromRight:
+				return .toRight
+			case .fromCenter(let scale):
+				return .toCenter(scale: scale)
+			case .from(let view):
+				return .to(view: view)
+			case .auto:
+				return .toCenter(scale: 0.8)
+		}
+	}
+	
+}
 extension NKModalEasingAnimation {
 	
 	func toAnimationOption() -> UIView.AnimationOptions {
@@ -205,6 +229,8 @@ public class NKModalController: NKModalContainerViewController {
 	public fileprivate(set) var isPresenting = false
 	public fileprivate(set) var isDismissing = false
 	public fileprivate(set) var isAnimating = false
+	public fileprivate(set) var presentAnimation: NKModalPresentAnimation?
+	public var dismissAnimation: NKModalDismissAnimation?
 	
 	public var delegate: NKModalControllerDelegate?
 	public var tapOutsideToDismiss = false
@@ -212,7 +238,7 @@ public class NKModalController: NKModalContainerViewController {
 	public var avoidKeyboard = false
 	
 	public fileprivate(set) var contentView: UIView!
-	public var anchorView: UIView?
+	public fileprivate(set) var anchorView: UIView?
 	
 	// Default values
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
@@ -294,18 +320,17 @@ public class NKModalController: NKModalContainerViewController {
 	
 	// MARK: -
 	
-	public func present(animatedFrom view: UIView?) {
+	public func present(animate: NKModalPresentAnimation? = nil) {
 		guard !isPresenting else { return }
 		isPresenting = true
+		presentAnimation = animate
 		
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
-		anchorView = view?.window != nil ? view : nil
 		if let container = contentView.superview {
 			lastPosition = (container, contentView.frame)
 		}
-		lastAnchorViewAlpha = view?.alpha ?? contentView.alpha
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
 		if presentingViewController == nil {
@@ -646,29 +671,29 @@ public class NKModalController: NKModalContainerViewController {
 			return (lastContainer.convert(contentView.frame, to: view), 1.0)
 		}
 		
-		if let anchorView = anchorView ?? contentView.superview {
-			return (frame: anchorView.convert(anchorView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
-		}
-		
 		var result = presentFrame()
 		var scaleValue: CGFloat = 1.0
-		var presentAnimation: NKModalPresentAnimation = delegate?.presentAnimation(modalController: self) ?? .auto
-		if presentAnimation == .auto {
-			presentAnimation = presentPosition.toPresentAnimation(view: view)
+		var animation: NKModalPresentAnimation = presentAnimation ?? delegate?.presentAnimation(modalController: self) ?? .auto
+		if animation == .auto {
+			animation = presentPosition.toPresentAnimation(view: view)
 		}
 		
-		switch presentAnimation {
-		case .auto: break
-		case .fromTop:
-			result.origin.y = -result.size.height
-		case .fromLeft:
-			result.origin.x = -result.size.width
-		case .fromBottom:
-			result.origin.y = view.bounds.size.height
-		case .fromRight:
-			result.origin.x = view.bounds.size.width
-		case .fromCenter(let scale):
-			scaleValue = scale
+		switch animation {
+			case .auto: break
+			case .fromTop:
+				result.origin.y = -result.size.height
+			case .fromLeft:
+				result.origin.x = -result.size.width
+			case .fromBottom:
+				result.origin.y = view.bounds.size.height
+			case .fromRight:
+				result.origin.x = view.bounds.size.width
+			case .fromCenter(let scale):
+				scaleValue = scale
+			case .from(let targetView):
+				anchorView = targetView.window != nil ? targetView : nil
+				lastAnchorViewAlpha = targetView.alpha
+				result = targetView.convert(targetView.bounds, to: view)
 		}
 		
 		return (frame: result, scale: scaleValue)
@@ -721,29 +746,28 @@ public class NKModalController: NKModalContainerViewController {
 			return (lastPosition.frame, 1.0)
 		}
 		
-		if let anchorView = anchorView {
-			return (frame: anchorView.convert(anchorView.bounds, to: view), scale: 1.0) // [_startView convertRect:_startView.bounds toCoordinateSpace:self.view];
-		}
-		
 		var result = presentFrame()
 		var scaleValue: CGFloat = 1.0
-		var dismissAnimation: NKModalDismissAnimation = delegate?.dismissAnimation(modalController: self) ?? .auto
-		if dismissAnimation == .auto {
-			dismissAnimation = presentPosition.toDismissAnimation(view: view)
+		var animation: NKModalDismissAnimation = dismissAnimation ?? delegate?.dismissAnimation(modalController: self) ?? .auto
+		if animation == .auto {
+			animation = presentAnimation?.toDismissAnimation(view: view) ?? presentPosition.toDismissAnimation(view: view)
 		}
 		
-		switch dismissAnimation {
-		case .auto: break
-		case .toTop:
-			result.origin.y = -result.size.height
-		case .toLeft:
-			result.origin.x = -result.size.width
-		case .toBottom:
-			result.origin.y = view.bounds.size.height
-		case .toRight:
-			result.origin.x = view.bounds.size.width
-		case .toCenter(let scale):
-			scaleValue = scale
+		switch animation {
+			case .auto: break
+			case .toTop:
+				result.origin.y = -result.size.height
+			case .toLeft:
+				result.origin.x = -result.size.width
+			case .toBottom:
+				result.origin.y = view.bounds.size.height
+			case .toRight:
+				result.origin.x = view.bounds.size.width
+			case .toCenter(let scale):
+				scaleValue = scale
+			case .to(let targetView):
+				anchorView = targetView.window != nil ? targetView : nil
+				result = targetView.convert(targetView.bounds, to: view)
 		}
 		
 		return (frame: result, scale: scaleValue)
@@ -751,7 +775,6 @@ public class NKModalController: NKModalContainerViewController {
 	
 	fileprivate var touchPoint: CGPoint = .zero
 	fileprivate var originPoint: CGPoint = .zero
-	fileprivate var dismissAnimation: NKModalDismissAnimation?
 	
 	@objc func onPan(_ gesture: UIPanGestureRecognizer) {
 		let enablePanGesture = delegate?.shouldDragToDismiss(modalController: self) ?? dragToDismiss

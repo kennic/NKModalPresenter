@@ -97,7 +97,7 @@ class DialogViewController: UIViewController {
 			dismiss(animated: true, completion: nil)
 		}
 		else {
-			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))), animatedFrom: button)
+			NKModalPresenter.shared.present(viewController: DialogViewController(contentSize: CGSize(width: Double.random(in: 200...400), height: Double.random(in: 300...500))), animate: .from(view: button))
 		}
 	}
 	
