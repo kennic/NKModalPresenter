@@ -62,23 +62,11 @@ public class NKModalPresenter {
 	}
 	
 	public func modalController(containing viewController: UIViewController) -> NKModalController? {
-		for modalController in activeModalControllers {
-			if modalController.contentViewController == viewController || modalController.contentViewController == viewController.navigationController {
-				return modalController
-			}
-		}
-		
-		return nil
+		return activeModalControllers.first(where: { $0.contentViewController == viewController || $0.contentViewController == viewController.navigationController })
 	}
 	
 	public func modalController(containing view: UIView) -> NKModalController? {
-		for modalController in activeModalControllers {
-			if modalController.contentViewController.view == view {
-				return modalController
-			}
-		}
-		
-		return nil
+		return activeModalControllers.first(where: { $0.contentViewController.view == view}) //.filter { $0.contentViewController.view == view }.first
 	}
 	
 	@objc func onModalControllerDismissed(_ notification: Notification) {
