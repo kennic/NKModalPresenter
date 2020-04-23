@@ -183,6 +183,7 @@ extension NKModalEasingAnimation {
 }
 
 extension UIWindow {
+	
 	static var keyWindow: UIWindow? {
 		if #available(iOS 13, *) {
 			return UIApplication.shared.windows.first { $0.isKeyWindow }
@@ -190,6 +191,7 @@ extension UIWindow {
 			return UIApplication.shared.keyWindow
 		}
 	}
+	
 }
 
 // MARK: - NKModalController
@@ -886,7 +888,11 @@ public class NKModalContainerViewController: UIViewController {
 	}
 	
 	public override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
+		#if targetEnvironment(macCatalyst)
+		return visibleViewController?.preferredInterfaceOrientationForPresentation ?? UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .portrait
+		#else
 		return visibleViewController?.preferredInterfaceOrientationForPresentation ?? UIApplication.shared.statusBarOrientation
+		#endif
 	}
 	
 	// Statusbar
