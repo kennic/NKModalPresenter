@@ -20,7 +20,8 @@ import NKModalPresenter
 let viewController = MyViewController()
 
 // Presenting
-NKModalPresenter.shared.present(viewController: viewController, animatedFrom: view)
+viewController.presentAsModal()
+viewController.presentAsModal(animatedFrom: view)
 
 // Dismissing
 viewController.modalDismiss(animated: true, completion: nil)
