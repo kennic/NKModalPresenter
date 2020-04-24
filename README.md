@@ -22,7 +22,7 @@ let viewController = MyViewController()
 // Presenting
 viewController.presentAsModal()
 viewController.presentAsModal(animate: .from(view)) // transition from view
-viewController.presentAsModal(animate: .top, to: .center) // customize the animation path
+viewController.presentAsModal(animate: .fromTop, to: .center) // customize the animation path
 
 // Dismissing
 viewController.dismissModal(animated: true, completion: nil)
