@@ -229,6 +229,7 @@ public class NKModalController: NKModalContainerViewController {
 	public fileprivate(set) var isPresenting = false
 	public fileprivate(set) var isDismissing = false
 	public fileprivate(set) var isAnimating = false
+	public fileprivate(set) var targetPosition: NKModalPresentPosition?
 	public fileprivate(set) var presentAnimation: NKModalPresentAnimation?
 	public var dismissAnimation: NKModalDismissAnimation?
 	
@@ -238,7 +239,13 @@ public class NKModalController: NKModalContainerViewController {
 	public var avoidKeyboard = false
 	
 	public fileprivate(set) var contentView: UIView!
-	public fileprivate(set) var anchorView: UIView?
+	public fileprivate(set) var anchorView: UIView? {
+		didSet {
+			guard anchorView != oldValue else { return }
+			oldValue?.alpha = lastAnchorViewAlpha
+			lastAnchorViewAlpha = anchorView?.alpha ?? 1.0
+		}
+	}
 	
 	// Default values
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
@@ -320,10 +327,11 @@ public class NKModalController: NKModalContainerViewController {
 	
 	// MARK: -
 	
-	public func present(animate: NKModalPresentAnimation? = nil) {
+	public func present(animate: NKModalPresentAnimation? = nil, to position: NKModalPresentPosition? = nil) {
 		guard !isPresenting else { return }
 		isPresenting = true
 		presentAnimation = animate
+		targetPosition = position
 		
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
@@ -663,7 +671,7 @@ public class NKModalController: NKModalContainerViewController {
 	// MARK: -
 	
 	private var presentPosition: NKModalPresentPosition {
-		return delegate?.presentPosition(modalController: self) ?? .center
+		return targetPosition ?? delegate?.presentPosition(modalController: self) ?? .center
 	}
 	
 	func initFrame() -> (frame: CGRect, scale: CGFloat) {
@@ -692,7 +700,6 @@ public class NKModalController: NKModalContainerViewController {
 				scaleValue = scale
 			case .from(let targetView):
 				anchorView = targetView.window != nil ? targetView : nil
-				lastAnchorViewAlpha = targetView.alpha
 				result = targetView.convert(targetView.bounds, to: view)
 		}
 		

@@ -31,9 +31,9 @@ public class NKModalPresenter {
 	private init() {}
 	
 	@discardableResult
-	public func present(viewController: UIViewController, animate: NKModalPresentAnimation? = nil) -> NKModalController {
+	public func present(viewController: UIViewController, animate: NKModalPresentAnimation? = nil, to position: NKModalPresentPosition? = nil) -> NKModalController {
 		let modalController = NKModalController(viewController: viewController)
-		modalController.present(animate: animate)
+		modalController.present(animate: animate, to: position)
 		
 //		let classType = type(of: viewController)
 //		viewController.swizzleInstanceMethod(classType, from: #selector(classType.dismiss(animated:completion:)), to: #selector(classType.dismissModal(animated:completion:)))
@@ -88,8 +88,8 @@ public class NKModalPresenter {
 extension UIViewController {
 	
 	@discardableResult
-	public func presentAsModal(animate: NKModalPresentAnimation? = nil) -> NKModalController {
-		NKModalPresenter.shared.present(viewController: self, animate: animate)
+	public func presentAsModal(animate: NKModalPresentAnimation? = nil, to position: NKModalPresentPosition? = nil) -> NKModalController {
+		NKModalPresenter.shared.present(viewController: self, animate: animate, to: position)
 	}
 	
 	public var modalController: NKModalController? {
