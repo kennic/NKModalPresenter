@@ -21,7 +21,8 @@ let viewController = MyViewController()
 
 // Presenting
 viewController.presentAsModal()
-viewController.presentAsModal(animate: .from(view)) // .fromLeft | .fromRight | .fromBottom | .fromTop
+viewController.presentAsModal(animate: .from(view)) // transition from view
+viewController.presentAsModal(animate: .top, to: .center) // customize the animation path
 
 // Dismissing
 viewController.dismissModal(animated: true, completion: nil)
