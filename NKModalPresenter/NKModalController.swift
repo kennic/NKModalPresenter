@@ -790,10 +790,11 @@ public class NKModalController: NKModalContainerViewController {
 		let state = gesture.state
 		let currentPoint = gesture.location(in: view)
 		
-		if dismissAnimation == nil {
-			dismissAnimation = delegate?.dismissAnimation(modalController: self) ?? .auto
-			if dismissAnimation == .auto {
-				dismissAnimation = presentPosition.toDismissAnimation(view: view)
+		var animation = dismissAnimation
+		if animation == nil {
+			animation = delegate?.dismissAnimation(modalController: self) ?? .auto
+			if animation == .auto {
+				animation = presentAnimation?.toDismissAnimation(view: view) ?? presentPosition.toDismissAnimation(view: view)
 			}
 		}
 		
@@ -805,26 +806,26 @@ public class NKModalController: NKModalContainerViewController {
 		else {
 			var distance: CGFloat
 			
-			if dismissAnimation == .toTop {
+			if animation == .toTop {
 			    distance = touchPoint.y - currentPoint.y
-			} else if dismissAnimation == .toLeft {
+			} else if animation == .toLeft {
 			    distance = touchPoint.x - currentPoint.x
-			} else if dismissAnimation == .toRight {
+			} else if animation == .toRight {
 			    distance = currentPoint.x - touchPoint.x
 			} else {
 			    distance = currentPoint.y - touchPoint.y
 			}
 			
 			if state == .changed {
-				if dismissAnimation == .toLeft {
+				if animation == .toLeft {
 				    var newFrame = containerView.frame
 				    newFrame.origin.x = min(originPoint.x - distance, originPoint.x)
 				    containerView.frame = newFrame
-				} else if dismissAnimation == .toRight {
+				} else if animation == .toRight {
 				    var newFrame = containerView.frame
 				    newFrame.origin.x = max(originPoint.x + distance, originPoint.x)
 				    containerView.frame = newFrame
-				} else if dismissAnimation == .toTop {
+				} else if animation == .toTop {
 				    var newFrame = containerView.frame
 				    newFrame.origin.y = min(originPoint.y - distance, originPoint.y)
 				    containerView.frame = newFrame
