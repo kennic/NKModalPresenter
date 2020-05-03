@@ -239,7 +239,7 @@ public class NKModalController: NKModalContainerViewController {
 	public var avoidKeyboard = false
 	
 	public fileprivate(set) var contentView: UIView!
-	public fileprivate(set) var anchorView: UIView? {
+	public var anchorView: UIView? {
 		didSet {
 			guard anchorView != oldValue else { return }
 			oldValue?.alpha = lastAnchorViewAlpha
