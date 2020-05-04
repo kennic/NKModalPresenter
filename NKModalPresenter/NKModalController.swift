@@ -244,6 +244,9 @@ public class NKModalController: NKModalContainerViewController {
 			guard anchorView != oldValue else { return }
 			oldValue?.alpha = lastAnchorViewAlpha
 			lastAnchorViewAlpha = anchorView?.alpha ?? 1.0
+			if oldValue != nil {
+				anchorView?.alpha = 0.0
+			}
 		}
 	}
 	
