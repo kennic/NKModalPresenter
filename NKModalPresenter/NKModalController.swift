@@ -426,6 +426,11 @@ public class NKModalController: NKModalContainerViewController {
 		}
 	}
 	
+	public func updatePosition(_ position: NKModalPresentPosition, duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
+		targetPosition = position
+		updateLayout(duration: duration, completion: completion)
+	}
+	
 	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
 		contentSize = getContentSize()
 		layoutView(duration: duration, completion: completion)
