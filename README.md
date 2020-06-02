@@ -24,8 +24,11 @@ viewController.presentAsModal()
 viewController.presentAsModal(animate: .from(view)) // transition from view
 viewController.presentAsModal(animate: .fromTop, to: .center) // customize the animation path
 
-// Dismissing
-viewController.dismissModal(animated: true, completion: nil)
+// Modal Controller Configuration
+viewController.modalController?.dismissAnimation = .toBottom // change dismiss animation
+viewController.modalController?.updatePosition(.top) // change position
+viewController.modalController?.tapOutsideToDismiss = true
+viewController.modalController?.dragToDismiss = true
 ```
 
 ## Examples
