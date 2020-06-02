@@ -35,8 +35,8 @@ public class NKModalPresenter {
 		let modalController = NKModalController(viewController: viewController)
 		modalController.present(animate: animate, to: position)
 		
-//		let classType = type(of: viewController)
-//		viewController.swizzleInstanceMethod(classType, from: #selector(classType.dismiss(animated:completion:)), to: #selector(classType.dismissModal(animated:completion:)))
+		let classType = type(of: viewController)
+		viewController.swizzleInstanceMethod(classType, from: #selector(classType.dismiss(animated:completion:)), to: #selector(classType.dismissModal(animated:completion:)))
 		
 		NotificationCenter.default.addObserver(self, selector: #selector(onModalControllerDismissed), name: NKModalController.didDismiss, object: modalController)
 		activeModalControllers.append(modalController)
@@ -97,8 +97,8 @@ extension UIViewController {
 	}
 	
 	@objc public func dismissModal(animated: Bool, completion: (() -> Void)? = nil) {
-//		let classType = type(of: self)
-//		swizzleInstanceMethod(classType, from: #selector(classType.dismissModal(animated:completion:)), to: #selector(classType.dismiss(animated:completion:)))
+		let classType = type(of: self)
+		swizzleInstanceMethod(classType, from: #selector(classType.dismissModal(animated:completion:)), to: #selector(classType.dismiss(animated:completion:)))
 		
 		if let modal = modalController {
 			modal.dismiss(animated: animated, completion: completion)
@@ -112,35 +112,43 @@ extension UIViewController {
 
 // Swizzle methods
 
-//extension UIViewController {
-//
-//	private func _swizzleMethod(_ class_: AnyClass, from selector1: Selector, to selector2: Selector, isClassMethod: Bool) {
-//		let c: AnyClass
-//		if isClassMethod {
-//			guard let c_ = object_getClass(class_) else { return }
-//			c = c_
-//		}
-//		else {
-//			c = class_
-//		}
-//
-//		guard let method1: Method = class_getInstanceMethod(c, selector1),
-//			let method2: Method = class_getInstanceMethod(c, selector2) else
-//		{
-//			return
-//		}
-//
-//		if class_addMethod(c, selector1, method_getImplementation(method2), method_getTypeEncoding(method2)) {
-//			class_replaceMethod(c, selector2, method_getImplementation(method1), method_getTypeEncoding(method1))
-//		}
-//		else {
-//			method_exchangeImplementations(method1, method2)
-//		}
-//	}
-//
-//	/// Instance-method swizzling.
-//	fileprivate func swizzleInstanceMethod(_ class_: AnyClass, from sel1: Selector, to sel2: Selector) {
-//		_swizzleMethod(class_, from: sel1, to: sel2, isClassMethod: false)
-//	}
-//	
-//}
+extension UIViewController {
+	
+	func swizzleInstanceMethod(_ class_: AnyClass, from sel1: Selector, to sel2: Selector) {
+		DispatchQueue.once {
+			let originalMethod = class_getInstanceMethod(class_, sel1)
+			let swizzledMethod = class_getInstanceMethod(class_, sel2)
+			method_exchangeImplementations(originalMethod!, swizzledMethod!)
+		}
+	}
+	
+}
+
+extension DispatchQueue {
+	private static var _onceTracker = [String]()
+	
+	public class func once(file: String = #file, function: String = #function, line: Int = #line, block:()->Void) {
+		let token = file + ":" + function + ":" + String(line)
+		once(token: token, block: block)
+	}
+	
+	/**
+	Executes a block of code, associated with a unique token, only once.  The code is thread safe and will
+	only execute the code once even in the presence of multithreaded calls.
+	
+	- parameter token: A unique reverse DNS style name such as com.vectorform.<name> or a GUID
+	- parameter block: Block to execute once
+	*/
+	public class func once(token: String, block:()->Void) {
+		objc_sync_enter(self)
+		defer { objc_sync_exit(self) }
+		
+		
+		if _onceTracker.contains(token) {
+			return
+		}
+		
+		_onceTracker.append(token)
+		block()
+	}
+}
