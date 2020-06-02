@@ -25,10 +25,11 @@ viewController.presentAsModal(animate: .from(view)) // transition from view
 viewController.presentAsModal(animate: .fromTop, to: .center) // customize the animation path
 
 // Modal Controller Configuration
-viewController.modalController?.dismissAnimation = .toBottom // change dismiss animation
 viewController.modalController?.updatePosition(.top) // change position
+viewController.modalController?.dismissAnimation = .toBottom // change dismiss animation
 viewController.modalController?.tapOutsideToDismiss = true
 viewController.modalController?.dragToDismiss = true
+viewController.modalController?.avoidKeyboard = true // auto push up when keyboard is visible
 ```
 
 ## Examples
