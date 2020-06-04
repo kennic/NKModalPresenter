@@ -30,6 +30,9 @@ viewController.modalController?.dismissAnimation = .toBottom // change dismiss a
 viewController.modalController?.tapOutsideToDismiss = true
 viewController.modalController?.dragToDismiss = true
 viewController.modalController?.avoidKeyboard = true // auto push up when keyboard is visible
+
+// Dismissing
+viewController.dismissModal(animated: true, completion: nil)
 ```
 
 ## Examples
