@@ -97,8 +97,8 @@ extension UIViewController {
 	}
 	
 	@objc public func dismissModal(animated: Bool, completion: (() -> Void)? = nil) {
-		let classType = type(of: self)
-		swizzleInstanceMethod(classType, from: #selector(classType.dismissModal(animated:completion:)), to: #selector(classType.dismiss(animated:completion:)))
+//		let classType = type(of: self)
+//		swizzleInstanceMethod(classType, from: #selector(classType.dismissModal(animated:completion:)), to: #selector(classType.dismiss(animated:completion:)))
 		
 		if let modal = modalController {
 			modal.dismiss(animated: animated, completion: completion)
