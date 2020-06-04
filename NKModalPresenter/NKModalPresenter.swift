@@ -35,9 +35,6 @@ public class NKModalPresenter {
 		let modalController = NKModalController(viewController: viewController)
 		modalController.present(animate: animate, to: position)
 		
-		let classType = type(of: viewController)
-		viewController.swizzleInstanceMethod(classType, from: #selector(classType.dismiss(animated:completion:)), to: #selector(classType.dismissModal(animated:completion:)))
-		
 		NotificationCenter.default.addObserver(self, selector: #selector(onModalControllerDismissed), name: NKModalController.didDismiss, object: modalController)
 		activeModalControllers.append(modalController)
 		return modalController
@@ -97,9 +94,6 @@ extension UIViewController {
 	}
 	
 	@objc public func dismissModal(animated: Bool, completion: (() -> Void)? = nil) {
-//		let classType = type(of: self)
-//		swizzleInstanceMethod(classType, from: #selector(classType.dismissModal(animated:completion:)), to: #selector(classType.dismiss(animated:completion:)))
-		
 		if let modal = modalController {
 			modal.dismiss(animated: animated, completion: completion)
 		}
@@ -108,47 +102,4 @@ extension UIViewController {
 		}
 	}
 	
-}
-
-// Swizzle methods
-
-extension UIViewController {
-	
-	func swizzleInstanceMethod(_ class_: AnyClass, from sel1: Selector, to sel2: Selector) {
-		DispatchQueue.once {
-			let originalMethod = class_getInstanceMethod(class_, sel1)
-			let swizzledMethod = class_getInstanceMethod(class_, sel2)
-			method_exchangeImplementations(originalMethod!, swizzledMethod!)
-		}
-	}
-	
-}
-
-extension DispatchQueue {
-	private static var _onceTracker = [String]()
-	
-	public class func once(file: String = #file, function: String = #function, line: Int = #line, block:()->Void) {
-		let token = file + ":" + function + ":" + String(line)
-		once(token: token, block: block)
-	}
-	
-	/**
-	Executes a block of code, associated with a unique token, only once.  The code is thread safe and will
-	only execute the code once even in the presence of multithreaded calls.
-	
-	- parameter token: A unique reverse DNS style name such as com.vectorform.<name> or a GUID
-	- parameter block: Block to execute once
-	*/
-	public class func once(token: String, block:()->Void) {
-		objc_sync_enter(self)
-		defer { objc_sync_exit(self) }
-		
-		
-		if _onceTracker.contains(token) {
-			return
-		}
-		
-		_onceTracker.append(token)
-		block()
-	}
 }

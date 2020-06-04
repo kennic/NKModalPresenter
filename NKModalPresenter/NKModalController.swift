@@ -250,6 +250,9 @@ public class NKModalController: NKModalContainerViewController {
 		}
 	}
 	
+//	var originalMethod: Method?
+//	var swizzledMethod: Method?
+	
 	// Default values
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
 	public static var animationDuration: TimeInterval = 0.45
@@ -335,6 +338,13 @@ public class NKModalController: NKModalContainerViewController {
 		isPresenting = true
 		presentAnimation = animate
 		targetPosition = position
+		
+//		DispatchQueue.once(token: "\(contentViewController!)") {
+//			let classType = type(of: contentViewController!)
+//			originalMethod = class_getInstanceMethod(classType.self, #selector(classType.dismiss(animated:completion:)))
+//			swizzledMethod = class_getInstanceMethod(classType.self, #selector(classType.dismissModal(animated:completion:)))
+//			method_exchangeImplementations(originalMethod!, swizzledMethod!)
+//		}
 		
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
@@ -496,6 +506,12 @@ public class NKModalController: NKModalContainerViewController {
 		guard !isDismissing else { return }
 		isDismissing = true
 		isAnimating = true
+		
+//		if let originalMethod = originalMethod, let swizzledMethod = swizzledMethod {
+//			method_exchangeImplementations(swizzledMethod, originalMethod)
+//			self.originalMethod = nil
+//			self.swizzledMethod = nil
+//		}
 		
 		NotificationCenter.default.removeObserver(self)
 		removeGestures()
@@ -948,4 +964,48 @@ public class NKModalContainerViewController: UIViewController {
 		return visibleViewController?.preferredStatusBarUpdateAnimation ?? .fade
 	}
 	
+}
+
+// Swizzle methods
+
+extension UIViewController {
+	
+	func swizzleInstanceMethod(from sel1: Selector, to sel2: Selector) {
+		let classType = type(of: self)
+		DispatchQueue.once(token: "\(classType)") {
+			let originalMethod = class_getInstanceMethod(classType, sel1)
+			let swizzledMethod = class_getInstanceMethod(classType, sel2)
+			method_exchangeImplementations(originalMethod!, swizzledMethod!)
+		}
+	}
+	
+}
+
+extension DispatchQueue {
+	private static var _onceTracker = [String]()
+	
+	public class func once(token: String, file: String = #file, function: String = #function, line: Int = #line, block:()->Void) {
+		let token = file + ":" + function + ":" + String(line) + token
+		once(token: token, block: block)
+	}
+	
+	/**
+	Executes a block of code, associated with a unique token, only once.  The code is thread safe and will
+	only execute the code once even in the presence of multithreaded calls.
+	
+	- parameter token: A unique reverse DNS style name such as com.vectorform.<name> or a GUID
+	- parameter block: Block to execute once
+	*/
+	public class func once(token: String, block:()->Void) {
+		objc_sync_enter(self)
+		defer { objc_sync_exit(self) }
+		
+		
+		if _onceTracker.contains(token) {
+			return
+		}
+		
+		_onceTracker.append(token)
+		block()
+	}
 }

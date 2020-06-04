@@ -103,7 +103,13 @@ class DialogViewController: UIViewController {
 	
 	override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
 		_ = view.endEditing(true)
-		super.dismiss(animated: flag, completion: completion)
+		
+		if let modalController = modalController {
+			modalController.dismiss(animated: flag, completion: completion)
+		}
+		else {
+			super.dismiss(animated: flag, completion: completion)
+		}
 	}
 	
 	// MARK: -
