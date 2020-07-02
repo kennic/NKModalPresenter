@@ -86,7 +86,7 @@ extension UIViewController {
 	
 	@discardableResult
 	public func presentAsModal(animate: NKModalPresentAnimation? = nil, to position: NKModalPresentPosition? = nil) -> NKModalController {
-		NKModalPresenter.shared.present(viewController: self, animate: animate, to: position)
+		return NKModalPresenter.shared.present(viewController: self, animate: animate, to: position)
 	}
 	
 	public var modalController: NKModalController? {
