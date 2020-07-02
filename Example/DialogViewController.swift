@@ -17,12 +17,8 @@ class DialogViewController: UIViewController {
 	var allowTransitionView = false
 	
 	override var preferredContentSize: CGSize {
-		get {
-			return contentSize
-		}
-		set {
-			super.preferredContentSize = newValue
-		}
+		get { contentSize }
+		set { super.preferredContentSize = newValue }
 	}
 	
 	init(contentSize: CGSize) {
@@ -164,7 +160,7 @@ extension DialogViewController: NKModalControllerDelegate {
 	}
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool {
-		return true
+		return false
 	}
 	
 	func shouldDragToDismiss(modalController: NKModalController) -> Bool {
