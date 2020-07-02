@@ -226,6 +226,11 @@ public class NKModalController: NKModalContainerViewController {
 	public static let willDismiss = Notification.Name(rawValue: "NKModalControllerWillDismiss")
 	public static let didDismiss = Notification.Name(rawValue: "NKModalControllerDidDismiss")
 	
+	public var willPresent: ((NKModalController) -> Void)?
+	public var didPresent: ((NKModalController) -> Void)?
+	public var willDismiss: ((NKModalController) -> Void)?
+	public var didDismiss: ((NKModalController) -> Void)?
+	
 	public fileprivate(set) var isPresenting = false
 	public fileprivate(set) var isDismissing = false
 	public fileprivate(set) var isAnimating = false
@@ -258,6 +263,11 @@ public class NKModalController: NKModalContainerViewController {
 	public static var animationDuration: TimeInterval = 0.45
 	public static var easingAnimation: NKModalEasingAnimation = .easeInOut
 	public static var cornerRadius: CGFloat = 8.0
+	
+	public var backgroundColor = NKModalController.backgroundColor
+	public var animationDuration: TimeInterval = NKModalController.animationDuration
+	public var easingAnimation: NKModalEasingAnimation = NKModalController.easingAnimation
+	public var cornerRadius: CGFloat = NKModalController.cornerRadius
 	
 	let containerView = UIView()
 	var window: UIWindow?
@@ -346,6 +356,7 @@ public class NKModalController: NKModalContainerViewController {
 //			method_exchangeImplementations(originalMethod!, swizzledMethod!)
 //		}
 		
+		willPresent?(self)
 		delegate?.modalController(self, willPresent: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willPresent, object: self, userInfo: nil)
 		
@@ -431,6 +442,8 @@ public class NKModalController: NKModalContainerViewController {
 		
 		layoutView(duration: nil) {
 			self.isPresenting = false
+			
+			self.didPresent?(self)
 			self.delegate?.modalController(self, didPresent: self.contentViewController)
 			NotificationCenter.default.post(name: NKModalController.didPresent, object: self, userInfo: nil)
 		}
@@ -449,12 +462,12 @@ public class NKModalController: NKModalContainerViewController {
 	private func layoutView(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
 		guard contentViewController != nil else { return }
 		
-		let cornerRadius = delegate?.cornerRadius(modalController: self) ?? Self.cornerRadius
+		let cornerRadius = delegate?.cornerRadius(modalController: self) ?? self.cornerRadius
 		containerView.clipsToBounds = cornerRadius > 0
 		
-		let color = delegate?.backgroundColor(modalController: self) ?? Self.backgroundColor
-		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
-		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? Self.animationDuration
+		let color = delegate?.backgroundColor(modalController: self) ?? backgroundColor
+		let easing = delegate?.easingAnimation(modalController: self) ?? easingAnimation
+		let durationValue = duration ?? delegate?.animationDuration(modalController: self) ?? animationDuration
 		
 		isAnimating = true
 		
@@ -516,10 +529,11 @@ public class NKModalController: NKModalContainerViewController {
 		NotificationCenter.default.removeObserver(self)
 		removeGestures()
 		
+		willDismiss?(self)
 		delegate?.modalController(self, willDismiss: contentViewController)
 		NotificationCenter.default.post(name: NKModalController.willDismiss, object: self, userInfo: nil)
 		
-		let duration = animated ? delegate?.animationDuration(modalController: self) ?? Self.animationDuration : 0.0
+		let duration = animated ? delegate?.animationDuration(modalController: self) ?? animationDuration : 0.0
 		let targetProperties = dismissFrame()
 		let transform: CGAffineTransform = targetProperties.scale == 1.0 ? .identity : CGAffineTransform(scaleX: targetProperties.scale, y: targetProperties.scale)
 		
@@ -554,7 +568,7 @@ public class NKModalController: NKModalContainerViewController {
 			targetFrame = view.convert(anchorView.frame, from: anchorView.superview)
 		}
 		
-		let easing = delegate?.easingAnimation(modalController: self) ?? Self.easingAnimation
+		let easing = delegate?.easingAnimation(modalController: self) ?? easingAnimation
 		animationBlock(duration: duration, options: easing.toAnimationOption(), animations: {
 			self.view.backgroundColor = .clear
 			
@@ -611,6 +625,7 @@ public class NKModalController: NKModalContainerViewController {
 					self.window?.removeFromSuperview()
 					self.window = nil
 					
+					self.didDismiss?(self)
 					self.delegate?.modalController(self, didDismiss: self.contentViewController)
 					NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
 					
