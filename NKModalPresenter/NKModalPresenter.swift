@@ -55,9 +55,7 @@ public class NKModalPresenter {
 	public func dismissAll(animated: Bool, completion: (() -> Void)? = nil) {
 		listenOnDismissEvent = false
 		let lastModalController = activeModalControllers.last
-		activeModalControllers.forEach { (modalController) in
-			modalController.dismiss(animated: animated, completion: modalController == lastModalController ? completion : nil)
-		}
+		activeModalControllers.forEach { $0.dismiss(animated: animated, completion: $0 == lastModalController ? completion : nil) }
 		activeModalControllers.removeAll()
 		listenOnDismissEvent = true
 	}

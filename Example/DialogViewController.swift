@@ -111,7 +111,7 @@ class DialogViewController: UIViewController {
 	// MARK: -
 	
 	override var prefersStatusBarHidden: Bool {
-		return true
+		return false
 	}
 	
 	override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation {
@@ -127,11 +127,11 @@ class DialogViewController: UIViewController {
 	}
 	
 	override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-		return .all
+		return .landscapeLeft
 	}
 	
 	override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
-		return .portrait
+		return .landscapeLeft
 	}
 	
 	deinit {

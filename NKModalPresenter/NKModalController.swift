@@ -801,16 +801,11 @@ public class NKModalController: NKModalContainerViewController {
 		
 		switch animation {
 			case .auto: break
-			case .toTop:
-				result.origin.y = -result.size.height
-			case .toLeft:
-				result.origin.x = -result.size.width
-			case .toBottom:
-				result.origin.y = view.bounds.size.height
-			case .toRight:
-				result.origin.x = view.bounds.size.width
-			case .toCenter(let scale):
-				scaleValue = scale
+			case .toTop: result.origin.y = -result.size.height
+			case .toLeft: result.origin.x = -result.size.width
+			case .toBottom: result.origin.y = view.bounds.size.height
+			case .toRight: result.origin.x = view.bounds.size.width
+			case .toCenter(let scale): scaleValue = scale
 			case .to(let targetView):
 				anchorView = targetView.window != nil ? targetView : nil
 				result = targetView.convert(targetView.bounds, to: view)
@@ -897,7 +892,6 @@ public class NKModalController: NKModalContainerViewController {
 	@objc func keyboardWillShow(_ notification: Notification) {
 		let avoidKeyboard = delegate?.shouldAvoidKeyboard(modalController: self) ?? self.avoidKeyboard
 		guard avoidKeyboard else { return }
-		
 		guard let userInfo = notification.userInfo as? [String : AnyObject] else { return }
 		guard let isLocalKeyboard: Bool = userInfo[UIResponder.keyboardIsLocalUserInfoKey]?.boolValue, isLocalKeyboard else { return }
 		guard let endFrame: CGRect = userInfo[UIResponder.keyboardFrameEndUserInfoKey]?.cgRectValue else { return }

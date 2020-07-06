@@ -38,9 +38,9 @@ class ViewController: UIViewController {
 		view.addSubview(backgroundImageView)
 		view.addSubview(testViewController.view)
 		
-		[button1, button2, button3].forEach { (button) in
-			button.addTarget(self, action: #selector(onButtonSelected), for: .touchUpInside)
-			view.addSubview(button)
+		[button1, button2, button3].forEach {
+			$0.addTarget(self, action: #selector(onButtonSelected), for: .touchUpInside)
+			view.addSubview($0)
 		}
 	}
 
