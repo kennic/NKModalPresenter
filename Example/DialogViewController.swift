@@ -160,7 +160,7 @@ extension DialogViewController: NKModalControllerDelegate {
 	}
 	
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool {
-		return false
+		return true
 	}
 	
 	func shouldDragToDismiss(modalController: NKModalController) -> Bool {
