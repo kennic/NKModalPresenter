@@ -259,7 +259,7 @@ public class NKModalController: NKModalContainerViewController {
 //	var swizzledMethod: Method?
 	
 	// Default values
-	public static var backgroundColor = UIColor.black.withAlphaComponent(0.8)
+	public static var backgroundColor = UIColor.black.withAlphaComponent(0.65)
 	public static var animationDuration: TimeInterval = 0.45
 	public static var easingAnimation: NKModalEasingAnimation = .easeInOut
 	public static var cornerRadius: CGFloat = 8.0
@@ -644,7 +644,7 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	private func getContentSize() -> CGSize {
-		var result = contentViewController.preferredContentSize
+		var result = (visibleViewController ?? contentViewController).preferredContentSize
 		if result == .zero {
 			return view.bounds.size
 		}
