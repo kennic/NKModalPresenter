@@ -88,7 +88,7 @@ extension UIViewController {
 	}
 	
 	public var modalController: NKModalController? {
-		return NKModalPresenter.shared.modalController(containing: self)
+		return NKModalPresenter.shared.modalController(containing: self) ?? (navigationController != nil ? NKModalPresenter.shared.modalController(containing: navigationController!) : nil)
 	}
 	
 	@objc public func dismissModal(animated: Bool, completion: (() -> Void)? = nil) {
