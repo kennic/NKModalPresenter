@@ -450,17 +450,32 @@ public class NKModalController: NKModalContainerViewController {
 	}
 	
 	public func updatePosition(_ position: NKModalPresentPosition, duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
+		guard targetPosition != position else { return }
 		targetPosition = position
-		updateLayout(duration: duration, completion: completion)
+		
+		contentSize = getContentSize()
+		layoutView(duration: duration, completion: completion)
 	}
 	
 	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
-		contentSize = getContentSize()
+		guard !isDismissing else { return }
+		
+		let newContentSize = getContentSize()
+		guard contentSize != newContentSize else { return }
+		guard !isPresenting else {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+				self.updateLayout(duration: duration, completion: completion)
+			}
+			return
+		}
+		
+		contentSize = newContentSize
 		layoutView(duration: duration, completion: completion)
 	}
 	
 	private func layoutView(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
 		guard contentViewController != nil else { return }
+		guard !isDismissing else { return }
 		
 		let cornerRadius = delegate?.cornerRadius(modalController: self) ?? self.cornerRadius
 		containerView.clipsToBounds = cornerRadius > 0
