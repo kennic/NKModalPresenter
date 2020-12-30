@@ -65,6 +65,8 @@ public protocol NKModalControllerDelegate {
 	func animationDuration(modalController: NKModalController) -> TimeInterval
 	func backgroundColor(modalController: NKModalController) -> UIColor
 	func cornerRadius(modalController: NKModalController) -> CGFloat
+	func cornerMask(modalController: NKModalController) -> CACornerMask
+	func windowLevel(modalController: NKModalController) -> UIWindow.Level
 	func transitionView(modalController: NKModalController) -> UIView?
 	
 }
@@ -89,6 +91,8 @@ public extension NKModalControllerDelegate {
 	func animationDuration(modalController: NKModalController) -> TimeInterval { return NKModalController.animationDuration }
 	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
 	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
+	func cornerMask(modalController: NKModalController) -> CACornerMask { return [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner] }
+	func windowLevel(modalController: NKModalController) -> UIWindow.Level { return .normal }
 	func transitionView(modalController: NKModalController) -> UIView? { return nil }
 	
 }
@@ -97,18 +101,12 @@ extension NKModalPresentPosition {
 	
 	func toPresentAnimation(view: UIView) -> NKModalPresentAnimation {
 		switch self {
-		case .top:
-			return .fromTop
-		case .left:
-			return .fromLeft
-		case .bottom:
-			return .fromBottom
-		case .right:
-			return .fromRight
-		case .center:
-			return .fromCenter(scale: 0.8)
-		case .fullscreen:
-			return .fromBottom
+		case .top: return .fromTop
+		case .left: return .fromLeft
+		case .bottom: return .fromBottom
+		case .right: return .fromRight
+		case .center: return .fromCenter(scale: 0.8)
+		case .fullscreen: return .fromBottom
 		case .custom(frame: let frame):
 			let viewSize = view.frame.size
 			let origin = frame.origin
@@ -132,18 +130,12 @@ extension NKModalPresentPosition {
 	
 	func toDismissAnimation(view: UIView) -> NKModalDismissAnimation {
 		switch self {
-		case .top:
-			return .toTop
-		case .left:
-			return .toLeft
-		case .bottom:
-			return .toBottom
-		case .right:
-			return .toRight
-		case .center:
-			return .toCenter(scale: 0.8)
-		case .fullscreen:
-			return .toBottom
+		case .top: return .toTop
+		case .left: return .toLeft
+		case .bottom: return .toBottom
+		case .right: return .toRight
+		case .center: return .toCenter(scale: 0.8)
+		case .fullscreen: return .toBottom
 		case .custom(frame: let frame):
 			let viewSize = view.frame.size
 			let origin = frame.origin
@@ -171,20 +163,13 @@ extension NKModalPresentAnimation {
 	
 	func toDismissAnimation(view: UIView) -> NKModalDismissAnimation {
 		switch self {
-			case .fromTop:
-				return .toTop
-			case .fromLeft:
-				return .toLeft
-			case .fromBottom:
-				return .toBottom
-			case .fromRight:
-				return .toRight
-			case .fromCenter(let scale):
-				return .toCenter(scale: scale)
-			case .from(let view):
-				return .to(view: view)
-			case .auto:
-				return .toCenter(scale: 0.8)
+			case .fromTop: return .toTop
+			case .fromLeft: return .toLeft
+			case .fromBottom: return .toBottom
+			case .fromRight: return .toRight
+			case .fromCenter(let scale): return .toCenter(scale: scale)
+			case .from(let view): return .to(view: view)
+			case .auto: return .toCenter(scale: 0.8)
 		}
 	}
 	
@@ -193,14 +178,10 @@ extension NKModalEasingAnimation {
 	
 	func toAnimationOption() -> UIView.AnimationOptions {
 		switch self {
-		case .easeIn:
-			return .curveEaseIn
-		case .easeOut:
-			return .curveEaseOut
-		case .easeInOut:
-			return .curveEaseInOut
-		case .linear:
-			return .curveLinear
+			case .easeIn: return .curveEaseIn
+			case .easeOut: return .curveEaseOut
+			case .easeInOut: return .curveEaseInOut
+			case .linear: return .curveLinear
 		}
 	}
 	
@@ -259,15 +240,18 @@ public class NKModalController: NKModalContainerViewController {
 //	var swizzledMethod: Method?
 	
 	// Default values
+	
 	public static var backgroundColor = UIColor.black.withAlphaComponent(0.65)
 	public static var animationDuration: TimeInterval = 0.45
 	public static var easingAnimation: NKModalEasingAnimation = .easeInOut
 	public static var cornerRadius: CGFloat = 8.0
+	public static var cornerMask: CACornerMask = [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner]
 	
 	public var backgroundColor = NKModalController.backgroundColor
 	public var animationDuration: TimeInterval = NKModalController.animationDuration
 	public var easingAnimation: NKModalEasingAnimation = NKModalController.easingAnimation
 	public var cornerRadius: CGFloat = NKModalController.cornerRadius
+	public var cornerMask: CACornerMask = NKModalController.cornerMask
 	
 	let containerView = UIView()
 	var window: UIWindow?
@@ -383,7 +367,7 @@ public class NKModalController: NKModalContainerViewController {
 				window = UIWindow(frame: UIScreen.main.bounds)
 			}
 			
-			window?.windowLevel = .normal
+			window?.windowLevel = delegate?.windowLevel(modalController: self) ?? .normal
 			window?.rootViewController = presentingViewController
 			window?.makeKeyAndVisible()
 		}
@@ -457,11 +441,11 @@ public class NKModalController: NKModalContainerViewController {
 		layoutView(duration: duration, completion: completion)
 	}
 	
-	public func updateLayout(duration: TimeInterval? = nil, completion: (() -> Void)? = nil) {
+	public func updateLayout(duration: TimeInterval? = nil, force: Bool = false, completion: (() -> Void)? = nil) {
 		guard !isDismissing else { return }
 		
 		let newContentSize = getContentSize()
-		guard contentSize != newContentSize else { return }
+		guard (contentSize != newContentSize) || force else { return }
 		guard !isPresenting else {
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
 				self.updateLayout(duration: duration, completion: completion)
@@ -477,6 +461,7 @@ public class NKModalController: NKModalContainerViewController {
 		guard contentViewController != nil else { return }
 		guard !isDismissing else { return }
 		
+		let maskedCorners = delegate?.cornerMask(modalController: self) ?? self.cornerMask
 		let cornerRadius = delegate?.cornerRadius(modalController: self) ?? self.cornerRadius
 		containerView.clipsToBounds = cornerRadius > 0
 		
@@ -501,6 +486,9 @@ public class NKModalController: NKModalContainerViewController {
 			self.containerView.frame = self.presentFrame()
 			self.containerView.alpha = 1.0
 			self.containerView.layer.cornerRadius = cornerRadius
+			if #available(iOS 11.0, *) {
+				self.containerView.layer.maskedCorners = maskedCorners
+			}
 			
 			self.anchorCapturedView?.alpha = 0.0
 			self.contentCapturedView?.alpha = 1.0
