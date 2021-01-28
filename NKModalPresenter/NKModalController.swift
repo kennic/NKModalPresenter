@@ -634,6 +634,7 @@ public class NKModalController: NKModalContainerViewController {
 					
 					self.contentView = nil
 					self.contentViewController = nil
+					completion?()
 				}
 			}
 		}
