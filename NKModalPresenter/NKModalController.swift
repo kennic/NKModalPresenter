@@ -367,7 +367,7 @@ public class NKModalController: NKModalContainerViewController {
 				window = UIWindow(frame: UIScreen.main.bounds)
 			}
 			
-			window?.windowLevel = delegate?.windowLevel(modalController: self) ?? .normal
+			window?.windowLevel = delegate?.windowLevel(modalController: self) ?? .normal + 1
 			window?.rootViewController = presentingViewController
 			window?.makeKeyAndVisible()
 		}
