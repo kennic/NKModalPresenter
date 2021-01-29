@@ -621,7 +621,13 @@ public class NKModalController: NKModalContainerViewController {
 					self.setNeedsStatusBarAppearanceUpdate()
 					self.isAnimating = false
 					self.isDismissing = false
-					self.lastWindow?.makeKeyAndVisible()
+					
+					if NKModalPresenter.shared.activeModalControllers.isEmpty {
+						self.lastWindow?.makeKeyAndVisible()
+					}
+					else {
+						self.lastWindow = nil
+					}
 					
 					self.window?.rootViewController?.resignFirstResponder()
 					self.window?.rootViewController = nil
