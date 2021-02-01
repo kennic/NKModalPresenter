@@ -92,7 +92,7 @@ public extension NKModalControllerDelegate {
 	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
 	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
 	func cornerMask(modalController: NKModalController) -> CACornerMask { return [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner] }
-	func windowLevel(modalController: NKModalController) -> UIWindow.Level { return .normal }
+	func windowLevel(modalController: NKModalController) -> UIWindow.Level { return .normal + 1 }
 	func transitionView(modalController: NKModalController) -> UIView? { return nil }
 	
 }
@@ -255,7 +255,7 @@ public class NKModalController: NKModalContainerViewController {
 	
 	let containerView = UIView()
 	var window: UIWindow?
-	var lastWindow: UIWindow?
+	weak var lastWindow: UIWindow?
 	var lastPosition: (container: UIView, frame: CGRect)?
 	var anchorCapturedView: UIImageView?
 	var contentCapturedView: UIImageView?
@@ -622,17 +622,16 @@ public class NKModalController: NKModalContainerViewController {
 					self.isAnimating = false
 					self.isDismissing = false
 					
-					if NKModalPresenter.shared.activeModalControllers.isEmpty {
-						self.lastWindow?.makeKeyAndVisible()
-					}
-					else {
-						self.lastWindow = nil
-					}
-					
 					self.window?.rootViewController?.resignFirstResponder()
 					self.window?.rootViewController = nil
 					self.window?.removeFromSuperview()
 					self.window = nil
+					
+					if NKModalPresenter.shared.activeModalControllers.isEmpty || NKModalPresenter.shared.topModalController == self {
+						self.lastWindow?.makeKeyAndVisible()
+					}
+					
+					self.lastWindow = nil
 					
 					self.didDismiss?(self)
 					self.delegate?.modalController(self, didDismiss: self.contentViewController)
@@ -640,6 +639,11 @@ public class NKModalController: NKModalContainerViewController {
 					
 					self.contentView = nil
 					self.contentViewController = nil
+					
+					if UIWindow.keyWindow == nil {
+						UIApplication.shared.windows.last?.makeKeyAndVisible()
+					}
+					
 					completion?()
 				}
 			}
