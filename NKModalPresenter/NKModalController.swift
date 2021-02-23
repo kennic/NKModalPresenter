@@ -56,6 +56,7 @@ public protocol NKModalControllerDelegate {
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool
 	func shouldDragToDismiss(modalController: NKModalController) -> Bool
 	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool
+	func shouldDisableUserInteractionWhileDismissing(modalController: NKModalController) -> Bool
 	
 	func presentingViewController(modalController: NKModalController) -> UIViewController?
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition
@@ -82,6 +83,7 @@ public extension NKModalControllerDelegate {
 	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool { return false }
 	func shouldDragToDismiss(modalController: NKModalController) -> Bool { return false }
 	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool { return false }
+	func shouldDisableUserInteractionWhileDismissing(modalController: NKModalController) -> Bool { return false }
 	
 	func presentingViewController(modalController: NKModalController) -> UIViewController? { return nil }
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition { return .center }
@@ -569,6 +571,10 @@ public class NKModalController: NKModalContainerViewController {
 		if let anchorView = anchorView, transitionView != nil {
 			transitionView!.alpha = 0.0
 			targetFrame = view.convert(anchorView.frame, from: anchorView.superview)
+		}
+		
+		if window != lastWindow, delegate?.shouldDisableUserInteractionWhileDismissing(modalController: self) == true {
+			window?.isUserInteractionEnabled = false
 		}
 		
 		let easing = delegate?.easingAnimation(modalController: self) ?? easingAnimation
