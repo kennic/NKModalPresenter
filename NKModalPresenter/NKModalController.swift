@@ -69,6 +69,7 @@ public protocol NKModalControllerDelegate {
 	func cornerMask(modalController: NKModalController) -> CACornerMask
 	func windowLevel(modalController: NKModalController) -> UIWindow.Level
 	func transitionView(modalController: NKModalController) -> UIView?
+	func transitionViewContentMode(modalController: NKModalController) -> UIView.ContentMode?
 	
 }
 
@@ -96,6 +97,7 @@ public extension NKModalControllerDelegate {
 	func cornerMask(modalController: NKModalController) -> CACornerMask { return [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner] }
 	func windowLevel(modalController: NKModalController) -> UIWindow.Level { return .normal + 1 }
 	func transitionView(modalController: NKModalController) -> UIView? { return nil }
+	func transitionViewContentMode(modalController: NKModalController) -> UIView.ContentMode? { return nil }
 	
 }
 
@@ -398,7 +400,7 @@ public class NKModalController: NKModalContainerViewController {
 			
 			contentCapturedView = capture(transitionView ?? contentView)
 			contentCapturedView?.alpha = 0.0
-			contentCapturedView?.contentMode = .scaleToFill
+			contentCapturedView?.contentMode = delegate?.transitionViewContentMode(modalController: self) ?? .scaleToFill
 			contentView.alpha = 0.0
 			
 			anchorCapturedView = capture(anchorView)
@@ -546,7 +548,7 @@ public class NKModalController: NKModalContainerViewController {
 			transitionView = delegate?.transitionView(modalController: self)
 			contentCapturedView = capture(transitionView ?? contentView)
 			contentCapturedView?.alpha = 1.0
-			contentCapturedView?.contentMode = .scaleToFill
+			contentCapturedView?.contentMode = delegate?.transitionViewContentMode(modalController: self) ?? .scaleToFill
 			
 			anchorView.alpha = 1.0
 			anchorCapturedView = capture(anchorView)
