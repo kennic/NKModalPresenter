@@ -400,10 +400,11 @@ public class NKModalController: NKModalContainerViewController {
 			
 			contentCapturedView = capture(transitionView ?? contentView)
 			contentCapturedView?.alpha = 0.0
-			contentCapturedView?.contentMode = delegate?.transitionViewContentMode(modalController: self) ?? .scaleToFill
+			contentCapturedView?.contentMode = .scaleToFill
 			contentView.alpha = 0.0
 			
 			anchorCapturedView = capture(anchorView)
+			anchorCapturedView?.contentMode = delegate?.transitionViewContentMode(modalController: self) ?? .scaleToFill
 			anchorCapturedView?.alpha = 1.0
 			
 			if transitionView != nil {
@@ -548,10 +549,11 @@ public class NKModalController: NKModalContainerViewController {
 			transitionView = delegate?.transitionView(modalController: self)
 			contentCapturedView = capture(transitionView ?? contentView)
 			contentCapturedView?.alpha = 1.0
-			contentCapturedView?.contentMode = delegate?.transitionViewContentMode(modalController: self) ?? .scaleToFill
+			contentCapturedView?.contentMode = .scaleToFill
 			
 			anchorView.alpha = 1.0
 			anchorCapturedView = capture(anchorView)
+			anchorCapturedView?.contentMode = delegate?.transitionViewContentMode(modalController: self) ?? .scaleToFill
 			anchorCapturedView?.alpha = 0.0
 			anchorView.alpha = 0.0
 			
