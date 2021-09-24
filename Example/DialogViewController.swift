@@ -122,19 +122,17 @@ class DialogViewController: UIViewController {
 		return .lightContent
 	}
 	
-	/*
 	override var shouldAutorotate: Bool {
 		return true
 	}
 	
 	override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-		return .landscapeLeft
+		return .all
 	}
 	
 	override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
-		return .landscapeLeft
+		return .landscapeRight
 	}
-	*/
 	
 	deinit {
 		print("DEINIT")

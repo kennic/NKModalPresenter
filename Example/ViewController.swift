@@ -81,4 +81,7 @@ class ViewController: UIViewController {
 		}
 	}
 	
+	override var shouldAutorotate: Bool { false }
+	override var supportedInterfaceOrientations: UIInterfaceOrientationMask { UIDevice.current.userInterfaceIdiom == .phone ? .portrait : .all }
+	
 }

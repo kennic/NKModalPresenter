@@ -59,6 +59,7 @@ public protocol NKModalControllerDelegate {
 	func shouldDisableUserInteractionWhileDismissing(modalController: NKModalController) -> Bool
 	
 	func presentingViewController(modalController: NKModalController) -> UIViewController?
+	func presentStyle(modalController: NKModalController) -> UIModalPresentationStyle
 	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition
 	func presentAnimation(modalController: NKModalController) -> NKModalPresentAnimation
 	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation
@@ -81,23 +82,24 @@ public extension NKModalControllerDelegate {
 	func modalController(_ controller: NKModalController, didDismiss viewController: UIViewController) {}
 	func modalController(_ controller: NKModalController, dragState: UIGestureRecognizer.State) {}
 	
-	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool { return false }
-	func shouldDragToDismiss(modalController: NKModalController) -> Bool { return false }
-	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool { return false }
-	func shouldDisableUserInteractionWhileDismissing(modalController: NKModalController) -> Bool { return false }
+	func shouldTapOutsideToDismiss(modalController: NKModalController) -> Bool { false }
+	func shouldDragToDismiss(modalController: NKModalController) -> Bool { false }
+	func shouldAvoidKeyboard(modalController: NKModalController) -> Bool { false }
+	func shouldDisableUserInteractionWhileDismissing(modalController: NKModalController) -> Bool { false }
 	
-	func presentingViewController(modalController: NKModalController) -> UIViewController? { return nil }
-	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition { return .center }
-	func presentAnimation(modalController: NKModalController) -> NKModalPresentAnimation { return .auto }
-	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation { return .auto }
-	func easingAnimation(modalController: NKModalController) -> NKModalEasingAnimation { return .easeInOut }
-	func animationDuration(modalController: NKModalController) -> TimeInterval { return NKModalController.animationDuration }
-	func backgroundColor(modalController: NKModalController) -> UIColor { return NKModalController.backgroundColor }
-	func cornerRadius(modalController: NKModalController) -> CGFloat { return NKModalController.cornerRadius }
-	func cornerMask(modalController: NKModalController) -> CACornerMask { return [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner] }
-	func windowLevel(modalController: NKModalController) -> UIWindow.Level { return .normal + 1 }
-	func transitionView(modalController: NKModalController) -> UIView? { return nil }
-	func transitionViewContentMode(modalController: NKModalController) -> UIView.ContentMode? { return nil }
+	func presentingViewController(modalController: NKModalController) -> UIViewController? { nil }
+	func presentStyle(modalController: NKModalController) -> UIModalPresentationStyle { .custom }
+	func presentPosition(modalController: NKModalController) -> NKModalPresentPosition { .center }
+	func presentAnimation(modalController: NKModalController) -> NKModalPresentAnimation { .auto }
+	func dismissAnimation(modalController: NKModalController) -> NKModalDismissAnimation { .auto }
+	func easingAnimation(modalController: NKModalController) -> NKModalEasingAnimation { .easeInOut }
+	func animationDuration(modalController: NKModalController) -> TimeInterval { NKModalController.animationDuration }
+	func backgroundColor(modalController: NKModalController) -> UIColor { NKModalController.backgroundColor }
+	func cornerRadius(modalController: NKModalController) -> CGFloat { NKModalController.cornerRadius }
+	func cornerMask(modalController: NKModalController) -> CACornerMask { [.layerMaxXMaxYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMinXMinYCorner] }
+	func windowLevel(modalController: NKModalController) -> UIWindow.Level { .normal + 1 }
+	func transitionView(modalController: NKModalController) -> UIView? { nil }
+	func transitionViewContentMode(modalController: NKModalController) -> UIView.ContentMode? { nil }
 	
 }
 
@@ -269,6 +271,7 @@ public class NKModalController: NKModalContainerViewController {
 	var contentSize: CGSize?
 	var lastAnchorViewAlpha: CGFloat = 1.0
 	var lastViewSize: CGSize?
+	var lastOrientation: UIInterfaceOrientation?
 	
 	var tapGesture: UITapGestureRecognizer?
 	var panGesture: UIPanGestureRecognizer?
@@ -276,17 +279,17 @@ public class NKModalController: NKModalContainerViewController {
 	public init(viewController: UIViewController) {
 		super.init(nibName: nil, bundle: nil)
 		
-		modalTransitionStyle = .crossDissolve
-		modalPresentationStyle = .overCurrentContext
-		modalPresentationCapturesStatusBarAppearance = true
-		
-		contentViewController = viewController
-		contentView = viewController.view
-		
 		delegate = viewController as? NKModalControllerDelegate
 		if delegate == nil, let navigationController = viewController as? UINavigationController {
 			delegate = navigationController.topViewController as? NKModalControllerDelegate
 		}
+		
+		modalTransitionStyle = .crossDissolve
+		modalPresentationStyle = delegate?.presentStyle(modalController: self) ?? .custom
+		modalPresentationCapturesStatusBarAppearance = true
+		
+		contentViewController = viewController
+		contentView = viewController.view
 	}
 	
 	required init?(coder: NSCoder) {
@@ -354,7 +357,7 @@ public class NKModalController: NKModalContainerViewController {
 		
 		var presentingViewController = delegate?.presentingViewController(modalController: self)
 		if presentingViewController == nil {
-			modalPresentationStyle = .fullScreen
+			modalPresentationStyle = delegate?.presentStyle(modalController: self) ?? .custom
 			lastWindow = UIWindow.keyWindow
 			
 			let containerViewController = NKModalContainerViewController()
@@ -374,6 +377,15 @@ public class NKModalController: NKModalContainerViewController {
 			window?.windowLevel = delegate?.windowLevel(modalController: self) ?? .normal + 1
 			window?.rootViewController = presentingViewController
 			window?.makeKeyAndVisible()
+			lastOrientation = UIApplication.shared.statusBarOrientation
+			
+			let shouldRotate = presentingViewController?.preferredInterfaceOrientationForPresentation != UIApplication.shared.statusBarOrientation
+			if shouldRotate {
+				contentView.transform = CGAffineTransform(rotationAngle: CGFloat(-Double.pi / 2))
+				UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseOut, animations: {
+					self.contentView.transform = .identity
+				})
+			}
 		}
 		
 		presentingViewController?.present(self, animated: false, completion: {
