@@ -463,8 +463,8 @@ public class NKModalController: NKModalContainerViewController {
 		
 		let newContentSize = getContentSize()
 		guard (contentSize != newContentSize) || force else { return }
-		guard !isPresenting else {
-			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+		guard !isPresenting || force else {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
 				self.updateLayout(duration: duration, completion: completion)
 			}
 			return
