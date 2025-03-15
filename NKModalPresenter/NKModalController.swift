@@ -644,13 +644,30 @@ public class NKModalController: NKModalContainerViewController {
 					self.isAnimating = false
 					self.isDismissing = false
 					
+					let remainingControllers = NKModalPresenter.shared.activeModalControllers.filter { $0 != self }
+					
+					var windowToActivate: UIWindow?
+					
+					if let topController = remainingControllers.last, let topWindow = topController.window {
+						windowToActivate = topWindow
+					} else if self.lastWindow != nil {
+						windowToActivate = self.lastWindow
+					} else if UIWindow.keyWindow == nil {
+						windowToActivate = UIApplication.shared.windows.last
+					}
+					
+					if let windowToActivate = windowToActivate {
+						windowToActivate.alpha = 1.0
+						windowToActivate.isHidden = false
+					}
+					
 					self.window?.rootViewController?.resignFirstResponder()
 					self.window?.rootViewController = nil
 					self.window?.removeFromSuperview()
 					self.window = nil
 					
-					if NKModalPresenter.shared.activeModalControllers.isEmpty || NKModalPresenter.shared.topModalController == self {
-						self.lastWindow?.makeKeyAndVisible()
+					if let windowToActivate = windowToActivate {
+						windowToActivate.makeKeyAndVisible()
 					}
 					
 					self.lastWindow = nil
@@ -661,10 +678,6 @@ public class NKModalController: NKModalContainerViewController {
 					
 					self.contentView = nil
 					self.contentViewController = nil
-					
-					if UIWindow.keyWindow == nil {
-						UIApplication.shared.windows.last?.makeKeyAndVisible()
-					}
 					
 					completion?()
 				}
