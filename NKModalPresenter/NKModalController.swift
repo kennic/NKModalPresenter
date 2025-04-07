@@ -656,20 +656,16 @@ public class NKModalController: NKModalContainerViewController {
 						windowToActivate = UIApplication.shared.windows.last
 					}
 					
-					if let windowToActivate = windowToActivate {
+					if let windowToActivate {
 						windowToActivate.alpha = 1.0
 						windowToActivate.isHidden = false
+						windowToActivate.makeKeyAndVisible()
 					}
 					
 					self.window?.rootViewController?.resignFirstResponder()
 					self.window?.rootViewController = nil
 					self.window?.removeFromSuperview()
 					self.window = nil
-					
-					if let windowToActivate = windowToActivate {
-						windowToActivate.makeKeyAndVisible()
-					}
-					
 					self.lastWindow = nil
 					
 					self.didDismiss?(self)
