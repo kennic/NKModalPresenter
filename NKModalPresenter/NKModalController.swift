@@ -659,12 +659,23 @@ public class NKModalController: NKModalContainerViewController {
 					if let windowToActivate {
 						windowToActivate.alpha = 1.0
 						windowToActivate.isHidden = false
+						
+						let currentWindow = self.window
+						
 						windowToActivate.makeKeyAndVisible()
+						
+						DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+							currentWindow?.rootViewController?.resignFirstResponder()
+							currentWindow?.rootViewController = nil
+							currentWindow?.removeFromSuperview()
+						}
+					}
+					else {
+						self.window?.rootViewController?.resignFirstResponder()
+						self.window?.rootViewController = nil
+						self.window?.removeFromSuperview()
 					}
 					
-					self.window?.rootViewController?.resignFirstResponder()
-					self.window?.rootViewController = nil
-					self.window?.removeFromSuperview()
 					self.window = nil
 					self.lastWindow = nil
 					
