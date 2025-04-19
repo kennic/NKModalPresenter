@@ -540,11 +540,11 @@ public class NKModalController: NKModalContainerViewController {
 		isDismissing = true
 		isAnimating = true
 		
-//		if let originalMethod = originalMethod, let swizzledMethod = swizzledMethod {
-//			method_exchangeImplementations(swizzledMethod, originalMethod)
-//			self.originalMethod = nil
-//			self.swizzledMethod = nil
-//		}
+		//		if let originalMethod = originalMethod, let swizzledMethod = swizzledMethod {
+		//			method_exchangeImplementations(swizzledMethod, originalMethod)
+		//			self.originalMethod = nil
+		//			self.swizzledMethod = nil
+		//		}
 		
 		NotificationCenter.default.removeObserver(self)
 		removeGestures()
@@ -614,7 +614,7 @@ public class NKModalController: NKModalContainerViewController {
 			self.contentCapturedView?.alpha = 0.0
 			
 			if let frame = targetFrame {
-//				self.contentView?.alpha = 0.0
+				//				self.contentView?.alpha = 0.0
 				self.contentCapturedView?.frame = frame
 				self.anchorCapturedView?.frame = frame
 			}
@@ -639,52 +639,39 @@ public class NKModalController: NKModalContainerViewController {
 			}) { (finished) in
 				self.removeCapturedView(&self.anchorCapturedView)
 				
+				let remainingControllers = NKModalPresenter.shared.activeModalControllers.filter { $0 != self }
+				var windowToActivate: UIWindow?
+				
+				if let topController = remainingControllers.last, let topWindow = topController.window {
+					windowToActivate = topWindow
+				} else if self.lastWindow != nil {
+					windowToActivate = self.lastWindow
+				} else if UIWindow.keyWindow == nil {
+					windowToActivate = UIApplication.shared.windows.last
+				}
+				
+				let currentWindow = self.window
+				currentWindow?.isHidden = true
+				
+				windowToActivate?.makeKeyAndVisible()
+				
+				currentWindow?.rootViewController?.resignFirstResponder()
+				currentWindow?.rootViewController = nil
+				
+				self.window = nil
+				
+				self.didDismiss?(self)
+				self.delegate?.modalController(self, didDismiss: self.contentViewController)
+				NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
+				
+				self.contentView = nil
+				self.contentViewController = nil
+				
 				super.dismiss(animated: false) {
 					self.setNeedsStatusBarAppearanceUpdate()
 					self.isAnimating = false
 					self.isDismissing = false
-					
-					let remainingControllers = NKModalPresenter.shared.activeModalControllers.filter { $0 != self }
-					
-					var windowToActivate: UIWindow?
-					
-					if let topController = remainingControllers.last, let topWindow = topController.window {
-						windowToActivate = topWindow
-					} else if self.lastWindow != nil {
-						windowToActivate = self.lastWindow
-					} else if UIWindow.keyWindow == nil {
-						windowToActivate = UIApplication.shared.windows.last
-					}
-					
-					if let windowToActivate {
-						windowToActivate.alpha = 1.0
-						windowToActivate.isHidden = false
-						
-						let currentWindow = self.window
-						
-						windowToActivate.makeKeyAndVisible()
-						
-						DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-							currentWindow?.rootViewController?.resignFirstResponder()
-							currentWindow?.rootViewController = nil
-							currentWindow?.removeFromSuperview()
-						}
-					}
-					else {
-						self.window?.rootViewController?.resignFirstResponder()
-						self.window?.rootViewController = nil
-						self.window?.removeFromSuperview()
-					}
-					
-					self.window = nil
 					self.lastWindow = nil
-					
-					self.didDismiss?(self)
-					self.delegate?.modalController(self, didDismiss: self.contentViewController)
-					NotificationCenter.default.post(name: NKModalController.didDismiss, object: self, userInfo: nil)
-					
-					self.contentView = nil
-					self.contentViewController = nil
 					
 					completion?()
 				}
